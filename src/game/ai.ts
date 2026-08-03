@@ -1,18 +1,57 @@
-// Anastra - Yapay zeka rakip mantığı
-import type { Card, GameState } from './types';
-import { selectBestMelds } from './meldFinder';
-import { canAppendToMeld, meldPoints } from './rules';
-import { rankToPenalty } from './deck';
+// Anastra AI v2 - Ana karar yöneticisi
+import type {
+  Card,
+  GameState,
+} from './types';
+
+import {
+  selectBestMelds,
+} from './meldFinder';
+
+import {
+  meldPoints,
+} from './rules';
+
 import {
   discardCard,
   drawFromDeck,
-  drawFromDiscard,
-  layOff,
-  openHand,
 } from './engine';
 
-// AI'ın tek bir turu oynaması: çekme -> aksiyon -> atma
-// Adımları tek tek döndürerek animasyon/gecikme sağlanır
+import {
+  chooseStrategy,
+} from './ai/strategy';
+
+import {
+  createGoals,
+} from './ai/goalPlanner';
+
+import {
+  generatePlanActions,
+} from './ai/actionGenerator';
+
+import {
+  simulateActions,
+} from './ai/simulator';
+
+import {
+  evaluateSimulations,
+  selectBestEvaluatedAction,
+} from './ai/evaluator';
+
+import {
+  analyzeTableState,
+} from './ai/tableAnalyzer';
+
+import type {
+  AIActionCandidate,
+  AIActionType,
+  AITurnPlan,
+} from './ai/types';
+
+import type {
+  EvaluatedAction,
+} from './ai/evaluator';
+
 export type AIStep =
   | { kind: 'draw'; state: GameState }
   | { kind: 'open'; state: GameState }
@@ -20,152 +59,678 @@ export type AIStep =
   | { kind: 'discard'; state: GameState }
   | { kind: 'done'; state: GameState };
 
-// AI çekme kararı
-function decideDraw(state: GameState): GameState {
-  const seat = state.currentSeat;
-  const player = state.players.find((p) => p.seat === seat)!;
+const ACTION_TYPES = {
+  drawDiscard: new Set<AIActionType>([
+    'draw-discard',
+  ]),
 
-  // Yerdeki kart, açılmamışsa sadece açılmayı sağlıyorsa alınabilir
-  const topDiscard = state.discard[state.discard.length - 1];
+  open: new Set<AIActionType>([
+    'open-hand',
+  ]),
 
-  if (topDiscard && !player.hasOpened) {
-    // Yerdeki kartla açılış barajını geçebilir mi?
-    const testHand = [...player.hand, topDiscard];
-    const melds = selectBestMelds(testHand);
-    const total = melds.reduce((s, m) => s + meldPoints(m), 0);
-    const usesCard = melds.some((m) => m.some((c) => c.id === topDiscard.id));
-    if (total >= state.openThreshold && usesCard) {
-      return drawFromDiscard(state);
-    }
-  }
+  tableAction: new Set<AIActionType>([
+    'create-meld',
+    'layoff-own',
+    'close-opponent-set',
+    'replace-opponent-run',
+  ]),
 
-  if (topDiscard && player.hasOpened) {
-    // Açılmışsa: yerdeki kart bir pere işlenebiliyorsa veya per yapıyorsa al
-    const canUse =
-      state.melds.some(
-        (m) => m.ownerTeam === player.team && canAppendToMeld(m, topDiscard),
-      );
-    if (canUse) {
-      return drawFromDiscard(state);
-    }
-  }
+  discard: new Set<AIActionType>([
+    'discard',
+  ]),
+};
 
-  return drawFromDeck(state);
+function getPlan(
+  state: GameState,
+  seat: number,
+): AITurnPlan {
+  const plan =
+    chooseStrategy(
+      state,
+      seat,
+    );
+
+  return {
+    ...plan,
+    goals:
+      createGoals(
+        state,
+        plan,
+      ),
+  };
 }
 
-// AI açılış kararı
-function decideOpen(state: GameState): GameState {
-  const seat = state.currentSeat;
-  const player = state.players.find((p) => p.seat === seat)!;
-  if (player.hasOpened) return state;
+function generateAllActions(
+  state: GameState,
+  plan: AITurnPlan,
+): AIActionCandidate[] {
+  const goalActions =
+    generatePlanActions(
+      state,
+      plan,
+    );
 
-  const melds = selectBestMelds(player.hand);
-  const total = melds.reduce((s, m) => s + meldPoints(m), 0);
-  if (total >= state.openThreshold && melds.length > 0) {
-    const ids = melds.map((m) => m.map((c) => c.id));
-    const res = openHand(state, seat, ids);
-    if (res.ok) return res.state;
+  const fallbackActions =
+    generatePlanActions(
+      state,
+      {
+        ...plan,
+        goals: [],
+      },
+    );
+
+  const unique =
+    new Map<
+      string,
+      AIActionCandidate
+    >();
+
+  for (
+    const action of [
+      ...goalActions,
+      ...fallbackActions,
+    ]
+  ) {
+    const cardKey =
+      [...(action.cardIds ?? [])]
+        .sort()
+        .join(',');
+
+    const key = [
+      action.type,
+      cardKey,
+      action.meldId ?? '',
+      action.discardIndex ?? '',
+    ].join('|');
+
+    if (!unique.has(key)) {
+      unique.set(
+        key,
+        action,
+      );
+    }
   }
+
+  return [
+    ...unique.values(),
+  ];
+}
+
+function filterActions(
+  actions: AIActionCandidate[],
+  allowed:
+    Set<AIActionType>,
+): AIActionCandidate[] {
+  return actions.filter(
+    (action) =>
+      allowed.has(
+        action.type,
+      ),
+  );
+}
+
+function evaluateActions(
+  state: GameState,
+  seat: number,
+  plan: AITurnPlan,
+  actions: AIActionCandidate[],
+): EvaluatedAction[] {
+  const simulations =
+    simulateActions(
+      state,
+      seat,
+      actions,
+    );
+
+  return evaluateSimulations(
+    state,
+    seat,
+    plan,
+    simulations,
+  );
+}
+
+function canSatisfyRequiredCard(
+  state: GameState,
+  seat: number,
+): boolean {
+  if (
+    !state.requiredDiscardCardId
+  ) {
+    return true;
+  }
+
+  const plan =
+    getPlan(
+      state,
+      seat,
+    );
+
+  const actions =
+    filterActions(
+      generateAllActions(
+        state,
+        plan,
+      ),
+      new Set<AIActionType>([
+        'open-hand',
+        'create-meld',
+        'layoff-own',
+        'close-opponent-set',
+        'replace-opponent-run',
+      ]),
+    );
+
+  const simulations =
+    simulateActions(
+      state,
+      seat,
+      actions,
+    );
+
+  return simulations.some(
+    (simulation) =>
+      simulation.success &&
+      simulation.stateAfter
+        .requiredDiscardCardId ===
+        null,
+  );
+}
+
+function chooseDiscardDraw(
+  state: GameState,
+  seat: number,
+  plan: AITurnPlan,
+): EvaluatedAction | null {
+  const discardActions =
+    filterActions(
+      generateAllActions(
+        state,
+        plan,
+      ),
+      ACTION_TYPES.drawDiscard,
+    );
+
+  const evaluated =
+    evaluateActions(
+      state,
+      seat,
+      plan,
+      discardActions,
+    );
+
+  for (
+    const candidate of evaluated
+  ) {
+    if (
+      !canSatisfyRequiredCard(
+        candidate.simulation
+          .stateAfter,
+        seat,
+      )
+    ) {
+      continue;
+    }
+
+    if (
+      candidate.evaluation
+        .total >= 4
+    ) {
+      return candidate;
+    }
+  }
+
+  return null;
+}
+
+function shouldOpenNow(
+  state: GameState,
+  seat: number,
+  plan: AITurnPlan,
+): boolean {
+  const analysis =
+    analyzeTableState(
+      state,
+      seat,
+    );
+
+  if (
+    analysis.currentOpeningPoints <
+      state.openThreshold ||
+    analysis.cardsRemainingAfterOpening <
+      1
+  ) {
+    return false;
+  }
+
+  if (
+    plan.strategy ===
+    'tempo'
+  ) {
+    return true;
+  }
+
+  if (
+    analysis.opponentMayFinishSoon
+  ) {
+    return true;
+  }
+
+  if (
+    plan.strategy ===
+    'patlama'
+  ) {
+    return (
+      analysis
+        .cardsRemainingAfterOpening <=
+        4 ||
+      analysis
+        .currentOpeningPoints >=
+        75
+    );
+  }
+
+  return (
+    analysis
+      .cardsRemainingAfterOpening <=
+      3 ||
+    analysis
+      .currentOpeningPoints >=
+      85
+  );
+}
+
+function chooseBestAction(
+  state: GameState,
+  seat: number,
+  plan: AITurnPlan,
+  allowed:
+    Set<AIActionType>,
+): EvaluatedAction | null {
+  const actions =
+    filterActions(
+      generateAllActions(
+        state,
+        plan,
+      ),
+      allowed,
+    );
+
+  const evaluated =
+    evaluateActions(
+      state,
+      seat,
+      plan,
+      actions,
+    );
+
+  return (
+    selectBestEvaluatedAction(
+      evaluated,
+    )
+  );
+}
+
+function chooseRequiredCardAction(
+  state: GameState,
+  seat: number,
+  plan: AITurnPlan,
+): EvaluatedAction | null {
+  if (
+    !state.requiredDiscardCardId
+  ) {
+    return null;
+  }
+
+  const actions =
+    filterActions(
+      generateAllActions(
+        state,
+        plan,
+      ),
+      new Set<AIActionType>([
+        'open-hand',
+        'create-meld',
+        'layoff-own',
+        'close-opponent-set',
+        'replace-opponent-run',
+      ]),
+    );
+
+  const evaluated =
+    evaluateActions(
+      state,
+      seat,
+      plan,
+      actions,
+    ).filter(
+      (item) =>
+        item.simulation
+          .stateAfter
+          .requiredDiscardCardId ===
+        null,
+    );
+
+  return (
+    selectBestEvaluatedAction(
+      evaluated,
+    )
+  );
+}
+
+function fallbackDiscard(
+  state: GameState,
+  seat: number,
+): GameState {
+  const player =
+    state.players.find(
+      (item) =>
+        item.seat === seat,
+    );
+
+  if (
+    !player ||
+    player.hand.length === 0 ||
+    state.requiredDiscardCardId
+  ) {
+    return state;
+  }
+
+  const ordered = [
+    ...player.hand,
+  ].sort(
+    (first, second) =>
+      first.points -
+      second.points,
+  );
+
+  for (
+    const card of ordered
+  ) {
+    const result =
+      discardCard(
+        state,
+        seat,
+        card.id,
+      );
+
+    if (result.ok) {
+      return result.state;
+    }
+  }
+
   return state;
 }
 
-// AI işleme kararı (açılmışsa elindeki kartları perlere ekle)
-function decideLayoff(state: GameState): GameState {
-  const seat = state.currentSeat;
-  let cur = state;
-  let changed = true;
+export function* playAITurn(
+  initial: GameState,
+): Generator<
+  AIStep,
+  void,
+  unknown
+> {
+  let state =
+    initial;
 
-  while (changed) {
-    changed = false;
-    const player = cur.players.find((p) => p.seat === seat)!;
-    if (!player.hasOpened) break;
+  const seat =
+    state.currentSeat;
 
-    for (const card of player.hand) {
-      // En az 2 kart elde tutmaya çalış (atmak için), ama biterse bitir
-      const meld = cur.melds.find((m) => canAppendToMeld(m, card));
-      if (meld) {
-        const res = layOff(cur, seat, card.id, meld.id);
-        if (res.ok) {
-          cur = res.state;
-          changed = true;
-          break;
-        }
-      }
+  if (
+    state.phase === 'draw'
+  ) {
+    const plan =
+      getPlan(
+        state,
+        seat,
+      );
+
+    const discardChoice =
+      chooseDiscardDraw(
+        state,
+        seat,
+        plan,
+      );
+
+    if (discardChoice) {
+      state =
+        discardChoice.simulation
+          .stateAfter;
+    } else {
+      state =
+        drawFromDeck(
+          state,
+        );
     }
-  }
-  return cur;
-}
 
-// AI atma kararı: en yüksek cezalı, işe yaramayan kartı at
-function decideDiscard(state: GameState): { state: GameState; finished: boolean } {
-  const seat = state.currentSeat;
-  const player = state.players.find((p) => p.seat === seat)!;
+    yield {
+      kind: 'draw',
+      state,
+    };
 
-  if (player.hand.length === 0) {
-    return { state, finished: true };
-  }
+    if (
+      state.phase ===
+        'roundOver' ||
+      state.phase ===
+        'gameOver'
+    ) {
+      yield {
+        kind: 'done',
+        state,
+      };
 
-  // Perlerde kullanılan kartları koru
-  const usefulIds = new Set<string>();
-  const melds = selectBestMelds(player.hand);
-  melds.forEach((m) => m.forEach((c) => usefulIds.add(c.id)));
-
-  // Atılabilecek adaylar: perlerde olmayanlar
-  let candidates = player.hand.filter((c) => !usefulIds.has(c.id));
-  if (candidates.length === 0) {
-    // Hepsi perde; yine de bir tane atmak zorunda (en düşük değerli)
-    candidates = [...player.hand];
-  }
-
-  // En yüksek ceza puanlı kartı at (elde risk azalt)
-  candidates.sort((a, b) => rankToPenalty(b.rank) - rankToPenalty(a.rank));
-  const toDiscard = candidates[0];
-
-  const res = discardCard(state, seat, toDiscard.id);
-  return { state: res.state, finished: res.state.phase !== 'draw' && res.state.currentSeat === seat };
-}
-
-// AI turunu adım adım üret (UI gecikmeli oynatabilsin diye)
-export function* playAITurn(initial: GameState): Generator<AIStep, void, unknown> {
-  let state = initial;
-  const seat = state.currentSeat;
-
-  // 1) Çekme
-  if (state.phase === 'draw') {
-    state = decideDraw(state);
-    yield { kind: 'draw', state };
-    if (state.phase === 'roundOver' || state.phase === 'gameOver') {
-      yield { kind: 'done', state };
       return;
     }
   }
 
-  // 2) Açılış
-  const before = state.players.find((p) => p.seat === seat)!.hasOpened;
-  state = decideOpen(state);
-  const after = state.players.find((p) => p.seat === seat)!.hasOpened;
-  if (!before && after) {
-    yield { kind: 'open', state };
+  if (
+    state.requiredDiscardCardId
+  ) {
+    const plan =
+      getPlan(
+        state,
+        seat,
+      );
+
+    const requiredAction =
+      chooseRequiredCardAction(
+        state,
+        seat,
+        plan,
+      );
+
+    if (requiredAction) {
+      const wasOpened =
+        state.players.find(
+          (item) =>
+            item.seat === seat,
+        )?.hasOpened ?? false;
+
+      state =
+        requiredAction.simulation
+          .stateAfter;
+
+      const isOpened =
+        state.players.find(
+          (item) =>
+            item.seat === seat,
+        )?.hasOpened ?? false;
+
+      yield {
+        kind:
+          !wasOpened &&
+          isOpened
+            ? 'open'
+            : 'layoff',
+
+        state,
+      };
+    }
   }
 
-  // 3) İşleme
-  const meldsBefore = state.melds.reduce((s, m) => s + m.cards.length, 0);
-  state = decideLayoff(state);
-  const meldsAfter = state.melds.reduce((s, m) => s + m.cards.length, 0);
-  if (meldsAfter > meldsBefore) {
-    yield { kind: 'layoff', state };
+  const currentPlayer =
+    state.players.find(
+      (item) =>
+        item.seat === seat,
+    );
+
+  if (
+    currentPlayer &&
+    !currentPlayer.hasOpened &&
+    !state.requiredDiscardCardId
+  ) {
+    const plan =
+      getPlan(
+        state,
+        seat,
+      );
+
+    if (
+      shouldOpenNow(
+        state,
+        seat,
+        plan,
+      )
+    ) {
+      const opening =
+        chooseBestAction(
+          state,
+          seat,
+          plan,
+          ACTION_TYPES.open,
+        );
+
+      if (opening) {
+        state =
+          opening.simulation
+            .stateAfter;
+
+        yield {
+          kind: 'open',
+          state,
+        };
+      }
+    }
   }
 
-  // 4) Atma (tur biter)
-  const dres = decideDiscard(state);
-  state = dres.state;
-  yield { kind: 'discard', state };
-  yield { kind: 'done', state };
+  for (
+    let actionCount = 0;
+    actionCount < 30;
+    actionCount += 1
+  ) {
+    const player =
+      state.players.find(
+        (item) =>
+          item.seat === seat,
+      );
+
+    if (
+      !player ||
+      !player.hasOpened ||
+      player.hand.length <= 1 ||
+      state.phase !== 'action'
+    ) {
+      break;
+    }
+
+    const plan =
+      getPlan(
+        state,
+        seat,
+      );
+
+    const action =
+      state.requiredDiscardCardId
+        ? chooseRequiredCardAction(
+            state,
+            seat,
+            plan,
+          )
+        : chooseBestAction(
+            state,
+            seat,
+            plan,
+            ACTION_TYPES.tableAction,
+          );
+
+    if (
+      !action ||
+      action.evaluation.total <= 0
+    ) {
+      break;
+    }
+
+    state =
+      action.simulation
+        .stateAfter;
+
+    yield {
+      kind: 'layoff',
+      state,
+    };
+  }
+
+  if (
+    state.phase === 'action'
+  ) {
+    const plan =
+      getPlan(
+        state,
+        seat,
+      );
+
+    const discard =
+      chooseBestAction(
+        state,
+        seat,
+        plan,
+        ACTION_TYPES.discard,
+      );
+
+    if (discard) {
+      state =
+        discard.simulation
+          .stateAfter;
+    } else {
+      state =
+        fallbackDiscard(
+          state,
+          seat,
+        );
+    }
+
+    yield {
+      kind: 'discard',
+      state,
+    };
+  }
+
+  yield {
+    kind: 'done',
+    state,
+  };
 }
 
-// Basit ipucu: insan oyuncu için en iyi açılış perlerini öner
-export function suggestMelds(hand: Card[]): { melds: Card[][]; total: number } {
-  const melds = selectBestMelds(hand);
-  const total = melds.reduce((s, m) => s + meldPoints(m), 0);
-  return { melds, total };
+export function suggestMelds(
+  hand: Card[],
+): {
+  melds: Card[][];
+  total: number;
+} {
+  const melds =
+    selectBestMelds(
+      hand,
+    );
+
+  const total =
+    melds.reduce(
+      (sum, meld) =>
+        sum +
+        meldPoints(meld),
+      0,
+    );
+
+  return {
+    melds,
+    total,
+  };
 }

@@ -788,7 +788,16 @@ export function openHand(
           : [...cards],
       ownerTeam: player.team,
       ownerSeat: seat,
-      locked: false,
+
+      /*
+       * Dört farklı suitten oluşan set tamamlanmıştır.
+       * Masaya doğrudan dört kart olarak açılırsa
+       * otomatik kapanır ve tekrar işlenemez.
+       * Seriler kart sayısından dolayı kapanmaz.
+       */
+      locked:
+        meldType === 'set' &&
+        cards.length === 4,
     };
   });
 
@@ -950,6 +959,16 @@ export function layOff(
         ? {
             ...item,
             cards: newCards,
+
+            /*
+             * Kendi takımının üçlü setine dördüncü
+             * farklı suit kart işlendiğinde set tamamlanır,
+             * otomatik kapanır ve tekrar işlenemez.
+             * Run türündeki perler açık kalır.
+             */
+            locked:
+              item.type === 'set' &&
+              newCards.length === 4,
           }
         : item,
     );
