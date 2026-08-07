@@ -179,6 +179,60 @@ export function sortPlayerHand(
   };
 }
 
+/*
+ * Oyuncunun elindeki kartların sırasını değiştirir.
+ *
+ * Bu fonksiyon yalnızca görsel dizilişi değiştirir.
+ * Kart eklemez, silmez ve oyun kurallarını etkilemez.
+ *
+ * Sürükle-bırak sistemi bu fonksiyonu kullanacaktır.
+ */
+export function reorderPlayerHand(
+  state: GameState,
+  seat: number,
+  fromIndex: number,
+  toIndex: number,
+): GameState {
+  if (fromIndex === toIndex) {
+    return state;
+  }
+
+  const players = state.players.map((player) => {
+    if (player.seat !== seat) {
+      return player;
+    }
+
+    const hand = [...player.hand];
+
+    if (
+      fromIndex < 0 ||
+      fromIndex >= hand.length ||
+      toIndex < 0 ||
+      toIndex >= hand.length
+    ) {
+      return player;
+    }
+
+    const [card] = hand.splice(fromIndex, 1);
+
+    if (!card) {
+      return player;
+    }
+
+    hand.splice(toIndex, 0, card);
+
+    return {
+      ...player,
+      hand,
+    };
+  });
+
+  return {
+    ...state,
+    players,
+  };
+}
+
 function addLog(
   state: GameState,
   message: string,
@@ -204,64 +258,21 @@ function getPlayer(
 
 
 /*
- * Seri kartlarını karşılaştırmak için As'ın düşük
- * kullanıldığı durumu belirler.
+ * Anastra'da As yalnızca yüksek karttır.
  *
- * A-2-3 gibi serilerde As = 1 kabul edilir.
- * Q-K-A gibi serilerde As = 14 kalır.
+ * Kart sırası:
+ * 2-3-4-5-6-7-8-9-10-J-Q-K-A
+ *
+ * Card.rankValue içinde As = 14 olduğu için
+ * ek bir düşük-As dönüşümüne gerek yoktur.
  */
-function usesLowAce(
-  cards: Card[],
-): boolean {
-  const hasAce = cards.some(
-    (card) => card.rank === 'A',
-  );
-
-  const hasTwo = cards.some(
-    (card) => card.rank === '2',
-  );
-
-  const hasKing = cards.some(
-    (card) => card.rank === 'K',
-  );
-
-  return (
-    hasAce &&
-    hasTwo &&
-    !hasKing
-  );
-}
-
-function runComparisonValue(
-  card: Card,
-  lowAce: boolean,
-): number {
-  if (
-    lowAce &&
-    card.rank === 'A'
-  ) {
-    return 1;
-  }
-
-  return card.rankValue;
-}
-
 function sortedRunCards(
   cards: Card[],
 ): Card[] {
-  const lowAce =
-    usesLowAce(cards);
-
   return [...cards].sort(
     (first, second) =>
-      runComparisonValue(
-        first,
-        lowAce,
-      ) -
-      runComparisonValue(
-        second,
-        lowAce,
-      ),
+      first.rankValue -
+      second.rankValue,
   );
 }
 
@@ -288,13 +299,27 @@ export function canCloseOpponentMeld(
     return false;
   }
 
-  if (meld.type === 'set') {
-    return (
-      card.rank ===
-      meld.cards[0].rank
-    );
+ if (meld.type === 'set') {
+  // Rank aynı olmalı.
+  if (
+    card.rank !==
+    meld.cards[0].rank
+  ) {
+    return false;
   }
 
+  // Aynı suit ikinci kez kullanılamaz.
+  const usedSuits = new Set(
+    meld.cards.map(
+      (meldCard) =>
+        meldCard.suit,
+    ),
+  );
+
+  return !usedSuits.has(
+    card.suit,
+  );
+}
   if (
     meld.cards.length === 0 ||
     card.suit !==
@@ -308,31 +333,16 @@ export function canCloseOpponentMeld(
       meld.cards,
     );
 
-  const lowAce =
-    usesLowAce([
-      ...meld.cards,
-      card,
-    ]);
-
   const firstValue =
-    runComparisonValue(
-      ordered[0],
-      lowAce,
-    );
+    ordered[0].rankValue;
 
   const lastValue =
-    runComparisonValue(
-      ordered[
-        ordered.length - 1
-      ],
-      lowAce,
-    );
+    ordered[
+      ordered.length - 1
+    ].rankValue;
 
   const cardValue =
-    runComparisonValue(
-      card,
-      lowAce,
-    );
+    card.rankValue;
 
   return (
     cardValue ===
@@ -416,10 +426,19 @@ export function drawFromDeck(
     ),
   };
 
-  nextState = sortPlayerHand(
-    nextState,
-    state.currentSeat,
-  );
+  /*
+   * İnsan oyuncu kartlarını elle sıralayabildiği için
+   * yeni kart çekildiğinde mevcut düzen korunur ve
+   * çekilen kart elin sonuna eklenir.
+   *
+   * AI oyuncularının eli ise otomatik sıralanabilir.
+   */
+  if (state.currentSeat !== 0) {
+    nextState = sortPlayerHand(
+      nextState,
+      state.currentSeat,
+    );
+  }
 
   return nextState;
 }
@@ -597,10 +616,18 @@ export function drawFromDiscard(
     log: addLog(state, message),
   };
 
-  nextState = sortPlayerHand(
-    nextState,
-    seat,
-  );
+  /*
+   * İnsan oyuncu yerden kart aldığında manuel el sırası
+   * korunur. Alınan kartlar mevcut elin sonuna eklenir.
+   *
+   * AI oyuncularında otomatik sıralama devam eder.
+   */
+  if (seat !== 0) {
+    nextState = sortPlayerHand(
+      nextState,
+      seat,
+    );
+  }
 
   return nextState;
 }
@@ -1074,12 +1101,6 @@ export function layOff(
       meld.cards,
     );
 
-  const lowAce =
-    usesLowAce([
-      ...meld.cards,
-      card,
-    ]);
-
   const firstCard =
     ordered[0];
 
@@ -1089,22 +1110,13 @@ export function layOff(
     ];
 
   const firstValue =
-    runComparisonValue(
-      firstCard,
-      lowAce,
-    );
+    firstCard.rankValue;
 
   const lastValue =
-    runComparisonValue(
-      lastCard,
-      lowAce,
-    );
+    lastCard.rankValue;
 
   const incomingValue =
-    runComparisonValue(
-      card,
-      lowAce,
-    );
+    card.rankValue;
 
   let capturedCard: Card;
 

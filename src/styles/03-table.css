@@ -1,0 +1,57 @@
+.anastra-table{
+    position:relative;
+
+    width:100%;
+    max-width:1800px;
+
+    height:100%;
+
+    border-radius:42px;
+
+    overflow:hidden;
+
+    border:14px solid #6d4328;
+
+    background:
+        radial-gradient(circle at center,#0d7b55 0%,#0a6848 45%,#07533b 100%);
+
+    box-shadow:
+        inset 0 0 60px rgba(0,0,0,.35),
+        0 20px 50px rgba(0,0,0,.45);
+}
+.table-seat{
+    position:absolute;
+}
+
+.table-meld-zone{
+    position:absolute;
+}
+
+.table-deck-area,
+.table-discard-area{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:8px;
+}
+
+.deck-stack{
+    background:none;
+    border:none;
+    padding:0;
+    cursor:pointer;
+}
+
+.table-center-label{
+    color:#fff;
+    font-weight:700;
+}
+
+.table-empty-discard{
+    width:90px;
+    height:126px;
+
+    border-radius:12px;
+
+    border:2px dashed rgba(255,255,255,.25);
+}

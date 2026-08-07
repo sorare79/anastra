@@ -4,74 +4,38 @@ import type {
   Meld,
   MeldType,
 } from './types';
-import { rankToPenalty } from './deck';
+
+import {
+  rankToPenalty,
+} from './deck';
 
 /*
- * Kart grubu tam olarak A-2-3 serisi mi?
+ * GERİYE DÖNÜK UYUMLULUK
  *
- * Aynı suit olmalıdır.
- * Tam olarak üç karttan oluşmalıdır.
- * Rank değerleri A, 2 ve 3 olmalıdır.
+ * Anastra'da As düşük kart olarak kullanılamaz.
+ * Bu fonksiyon eski kodlarda içe aktarılmış olabilir;
+ * build bozulmaması için korunur fakat her zaman false döner.
+ *
+ * A-2-3 geçersizdir.
  */
 export function isAceLowThreeRun(
-  cards: Card[],
+  _cards: Card[],
 ): boolean {
-  if (cards.length !== 3) {
-    return false;
-  }
-
-  const suit = cards[0].suit;
-
-  if (
-    !cards.every(
-      (card) => card.suit === suit,
-    )
-  ) {
-    return false;
-  }
-
-  const ranks = new Set(
-    cards.map((card) => card.rank),
-  );
-
-  return (
-    ranks.size === 3 &&
-    ranks.has('A') &&
-    ranks.has('2') &&
-    ranks.has('3')
-  );
+  return false;
 }
 
 /*
  * Bir perin toplam puanı.
  *
- * Normal durumda kartların points değerleri kullanılır:
- * A = 11
- * K, Q, J = 10
+ * As her durumda 11 puandır.
  *
- * Tek özel durum:
- * A-2-3 serisinde A = 1 sayılır.
- *
- * A-2-3:
- * 1 + 2 + 3 = 6
- *
- * Q-K-A:
- * 10 + 10 + 11 = 31
+ * Örnekler:
+ * Q-K-A = 10 + 10 + 11 = 31
+ * A-A-A = 11 + 11 + 11 = 33
  */
-export function meldPoints(cards: Card[]): number {
-  if (isAceLowThreeRun(cards)) {
-    return cards.reduce(
-      (total, card) => {
-        if (card.rank === 'A') {
-          return total + 1;
-        }
-
-        return total + card.points;
-      },
-      0,
-    );
-  }
-
+export function meldPoints(
+  cards: Card[],
+): number {
   return cards.reduce(
     (total, card) =>
       total + card.points,
@@ -98,36 +62,50 @@ export function isValidSet(
     return false;
   }
 
-  const rank = cards[0].rank;
+  const rank =
+    cards[0].rank;
 
   if (
     !cards.every(
-      (card) => card.rank === rank,
+      (card) =>
+        card.rank === rank,
     )
   ) {
     return false;
   }
 
-  const suits = new Set(
-    cards.map((card) => card.suit),
-  );
+  const suits =
+    new Set(
+      cards.map(
+        (card) =>
+          card.suit,
+      ),
+    );
 
-  return suits.size === cards.length;
+  return (
+    suits.size ===
+    cards.length
+  );
 }
 
 /*
  * Aynı suit içinde ardışık seri.
  *
- * A iki şekilde kullanılabilir:
+ * Anastra'da As yalnızca yüksek karttır.
  *
- * Düşük:
- * A-2-3
- *
- * Yüksek:
+ * Geçerli:
+ * 2-3-4
+ * 10-J-Q
+ * J-Q-K
  * Q-K-A
  *
- * Sarma yapılamaz:
- * K-A-2 geçersizdir.
+ * Geçersiz:
+ * A-2-3
+ * A-2-3-4
+ * K-A-2
+ *
+ * Rank sırası:
+ * 2, 3, 4, 5, 6, 7, 8, 9, 10, J, Q, K, A
  */
 export function isValidRun(
   cards: Card[],
@@ -136,104 +114,65 @@ export function isValidRun(
     return false;
   }
 
-  const suit = cards[0].suit;
+  const suit =
+    cards[0].suit;
 
   if (
     !cards.every(
-      (card) => card.suit === suit,
+      (card) =>
+        card.suit === suit,
     )
   ) {
     return false;
   }
 
-  const normalValues = cards
-    .map((card) => card.rankValue)
-    .sort((a, b) => a - b);
+  const values =
+    cards
+      .map(
+        (card) =>
+          card.rankValue,
+      )
+      .sort(
+        (first, second) =>
+          first - second,
+      );
 
   /*
-   * Aynı rank değerinden iki tane seri içinde
+   * Aynı rank değerinden iki kart seri içinde
    * birlikte kullanılamaz.
    */
   for (
     let index = 1;
-    index < normalValues.length;
+    index < values.length;
     index += 1
   ) {
     if (
-      normalValues[index] ===
-      normalValues[index - 1]
+      values[index] ===
+      values[index - 1]
     ) {
       return false;
     }
   }
 
-  const isConsecutive = (
-    values: number[],
-  ): boolean => {
-    for (
-      let index = 1;
-      index < values.length;
-      index += 1
-    ) {
-      if (
-        values[index] !==
-        values[index - 1] + 1
-      ) {
-        return false;
-      }
-    }
-
-    return true;
-  };
-
   /*
-   * Normal sıra:
-   * 2-3-4
-   * 10-J-Q
-   * Q-K-A
+   * Yalnızca doğal yüksek sıra kabul edilir.
+   * As'ın rankValue değeri 14 olduğu için
+   * Q-K-A doğal olarak geçerli olur.
    */
-  if (isConsecutive(normalValues)) {
-    return true;
+  for (
+    let index = 1;
+    index < values.length;
+    index += 1
+  ) {
+    if (
+      values[index] !==
+      values[index - 1] + 1
+    ) {
+      return false;
+    }
   }
 
-  /*
-   * A düşük kullanılıyorsa 14 yerine 1 kabul edilir.
-   *
-   * Bu kontrol A-2-3 serisini geçerli yapar.
-   * Ayrıca uzun düşük As serilerini destekler:
-   * A-2-3-4
-   *
-   * Puan özel kuralı ise yalnızca tam A-2-3
-   * grubunda uygulanmaktadır.
-   */
-  if (normalValues.includes(14)) {
-    const lowAceValues = cards
-      .map((card) =>
-        card.rank === 'A'
-          ? 1
-          : card.rankValue,
-      )
-      .sort((a, b) => a - b);
-
-    for (
-      let index = 1;
-      index < lowAceValues.length;
-      index += 1
-    ) {
-      if (
-        lowAceValues[index] ===
-        lowAceValues[index - 1]
-      ) {
-        return false;
-      }
-    }
-
-    return isConsecutive(
-      lowAceValues,
-    );
-  }
-
-  return false;
+  return true;
 }
 
 export function getMeldType(
@@ -253,66 +192,28 @@ export function getMeldType(
 export function isValidMeld(
   cards: Card[],
 ): boolean {
-  return getMeldType(cards) !== null;
+  return (
+    getMeldType(cards) !==
+    null
+  );
 }
 
 /*
  * Seriyi ekranda doğru sıraya dizer.
  *
- * A düşük kullanılıyorsa:
- * A-2-3
+ * As her zaman yüksek olduğu için rankValue sırası
+ * doğrudan yeterlidir:
  *
- * A yüksek kullanılıyorsa:
  * Q-K-A
  */
 export function sortRun(
   cards: Card[],
 ): Card[] {
-  const sorted = [...cards].sort(
-    (a, b) =>
-      a.rankValue - b.rankValue,
+  return [...cards].sort(
+    (first, second) =>
+      first.rankValue -
+      second.rankValue,
   );
-
-  const hasAce = sorted.some(
-    (card) => card.rank === 'A',
-  );
-
-  const hasTwo = sorted.some(
-    (card) => card.rank === '2',
-  );
-
-  const hasKing = sorted.some(
-    (card) => card.rank === 'K',
-  );
-
-  /*
-   * A ile 2 bulunuyor, fakat K bulunmuyorsa
-   * As düşük kabul edilir ve başa alınır.
-   */
-  if (
-    hasAce &&
-    hasTwo &&
-    !hasKing
-  ) {
-    const ace = sorted.find(
-      (card) => card.rank === 'A',
-    );
-
-    if (!ace) {
-      return sorted;
-    }
-
-    const otherCards = sorted.filter(
-      (card) => card.id !== ace.id,
-    );
-
-    return [
-      ace,
-      ...otherCards,
-    ];
-  }
-
-  return sorted;
 }
 
 /*
@@ -334,19 +235,24 @@ export function canAppendToMeld(
       return false;
     }
 
-    const suits = new Set(
-      meld.cards.map(
-        (meldCard) =>
-          meldCard.suit,
-      ),
-    );
+    const suits =
+      new Set(
+        meld.cards.map(
+          (meldCard) =>
+            meldCard.suit,
+        ),
+      );
 
-    return !suits.has(card.suit);
+    return (
+      !suits.has(
+        card.suit,
+      )
+    );
   }
 
   /*
    * Seri için yeni kart eklendiğinde bütün seri
-   * yeniden doğrulanır.
+   * yüksek-As kuralıyla yeniden doğrulanır.
    */
   return isValidRun([
     ...meld.cards,
@@ -357,15 +263,15 @@ export function canAppendToMeld(
 /*
  * Birden fazla perin toplam açılış puanı.
  *
- * Her per meldPoints() üzerinden hesaplandığı için
- * A-2-3 özel puanı otomatik uygulanır.
+ * As her durumda 11 puandır.
  */
 export function totalMeldsPoints(
   melds: Card[][],
 ): number {
   return melds.reduce(
     (total, meld) =>
-      total + meldPoints(meld),
+      total +
+      meldPoints(meld),
     0,
   );
 }
@@ -373,9 +279,7 @@ export function totalMeldsPoints(
 /*
  * Elde kalan kartların ceza puanı.
  *
- * A elde kaldığında 11 puandır.
- * Burada A-2-3 istisnası uygulanmaz; çünkü kartlar
- * masaya geçerli bir per olarak açılmamıştır.
+ * As elde kaldığında 11 puandır.
  */
 export function handPenalty(
   cards: Card[],
@@ -383,7 +287,9 @@ export function handPenalty(
   return cards.reduce(
     (total, card) =>
       total +
-      rankToPenalty(card.rank),
+      rankToPenalty(
+        card.rank,
+      ),
     0,
   );
 }

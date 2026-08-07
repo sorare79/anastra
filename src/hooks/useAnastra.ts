@@ -5,7 +5,13 @@ import {
   useRef,
   useState,
 } from 'react';
-import type { GameState } from '../game/types';
+
+import type {
+  Card,
+  GameState,
+  Meld,
+} from '../game/types';
+
 import {
   canTakeDiscard,
   createRound,
@@ -14,26 +20,280 @@ import {
   drawFromDiscard,
   layOff,
   openHand,
+  reorderPlayerHand,
   seatTeam,
 } from '../game/engine';
+
+import { meldPoints } from '../game/rules';
 import { playAITurn } from '../game/ai';
+
+import {
+  completeHistoryGame,
+  completeHistoryRound,
+  recordHistoryAction,
+  resetHistorySession,
+  startHistoryGame,
+  startHistoryRound,
+} from '../game/history/session';
+
+import type { GameActionType } from '../game/history/types';
 
 export interface UIMessage {
   text: string;
   type: 'info' | 'error' | 'success';
 }
 
+interface PendingDiscardHistory {
+  stateBefore: GameState;
+  stateAfter: GameState;
+  selectedIndex: number;
+  cardIds: string[];
+  cardsTakenCount: number;
+}
+
+function addedHandCards(
+  before: GameState,
+  after: GameState,
+  seat: number,
+): Card[] {
+  const beforePlayer = before.players.find((player) => player.seat === seat);
+  const afterPlayer = after.players.find((player) => player.seat === seat);
+
+  if (!beforePlayer || !afterPlayer) {
+    return [];
+  }
+
+  const beforeIds = new Set(beforePlayer.hand.map((card) => card.id));
+  return afterPlayer.hand.filter((card) => !beforeIds.has(card.id));
+}
+
+function removedHandCards(
+  before: GameState,
+  after: GameState,
+  seat: number,
+): Card[] {
+  const beforePlayer = before.players.find((player) => player.seat === seat);
+  const afterPlayer = after.players.find((player) => player.seat === seat);
+
+  if (!beforePlayer || !afterPlayer) {
+    return [];
+  }
+
+  const afterIds = new Set(afterPlayer.hand.map((card) => card.id));
+  return beforePlayer.hand.filter((card) => !afterIds.has(card.id));
+}
+
+function newMeldsOwnedBySeat(
+  before: GameState,
+  after: GameState,
+  seat: number,
+): Meld[] {
+  const beforeIds = new Set(before.melds.map((meld) => meld.id));
+
+  return after.melds.filter(
+    (meld) => meld.ownerSeat === seat && !beforeIds.has(meld.id),
+  );
+}
+
+function findChangedMeld(
+  before: GameState,
+  after: GameState,
+): {
+  beforeMeld?: Meld;
+  afterMeld?: Meld;
+} {
+  for (const afterMeld of after.melds) {
+    const beforeMeld = before.melds.find(
+      (meld) => meld.id === afterMeld.id,
+    );
+
+    if (!beforeMeld) {
+      return { afterMeld };
+    }
+
+    const beforeIds = beforeMeld.cards
+      .map((card) => card.id)
+      .sort()
+      .join('|');
+
+    const afterIds = afterMeld.cards
+      .map((card) => card.id)
+      .sort()
+      .join('|');
+
+    if (
+      beforeIds !== afterIds ||
+      beforeMeld.locked !== afterMeld.locked
+    ) {
+      return {
+        beforeMeld,
+        afterMeld,
+      };
+    }
+  }
+
+  return {};
+}
+
+function finishHistoryWhenNeeded(
+  before: GameState,
+  after: GameState,
+): void {
+  const ended =
+    (after.phase === 'roundOver' || after.phase === 'gameOver') &&
+    before.phase !== 'roundOver' &&
+    before.phase !== 'gameOver';
+
+  if (!ended) {
+    return;
+  }
+
+  const finisher = after.players.find(
+    (player) => player.hasOpened && player.hand.length === 0,
+  );
+
+  completeHistoryRound(after, {
+    endReason: finisher ? 'finished' : 'deck',
+    winnerSeat: finisher?.seat,
+    winnerTeam: finisher?.team,
+  });
+
+  if (after.phase === 'gameOver') {
+    completeHistoryGame(after);
+  }
+}
+
+function recordAITransition(
+  before: GameState,
+  after: GameState,
+  seat: number,
+  stepKind: 'draw' | 'open' | 'layoff' | 'discard',
+): void {
+  if (stepKind === 'draw') {
+    const added = addedHandCards(before, after, seat);
+
+    recordHistoryAction(before, after, {
+      seat,
+      action: after.tookFromDiscard ? 'draw-discard' : 'draw-deck',
+      cardIds: added.map((card) => card.id),
+      discardStartIndex: after.tookFromDiscard
+        ? after.discard.length
+        : undefined,
+      cardsTakenCount: after.tookFromDiscard
+        ? added.length
+        : undefined,
+    });
+
+    finishHistoryWhenNeeded(before, after);
+    return;
+  }
+
+  if (stepKind === 'open') {
+    const beforePlayer = before.players.find(
+      (player) => player.seat === seat,
+    );
+
+    const removed = removedHandCards(before, after, seat);
+    const newMelds = newMeldsOwnedBySeat(before, after, seat);
+
+    recordHistoryAction(before, after, {
+      seat,
+      action: beforePlayer?.hasOpened ? 'create-meld' : 'open-hand',
+      cardIds: removed.map((card) => card.id),
+      openingPoints: newMelds.reduce(
+        (total, meld) => total + meldPoints(meld.cards),
+        0,
+      ),
+      requiredCardUsed: Boolean(
+        before.requiredDiscardCardId &&
+          after.requiredDiscardCardId === null,
+      ),
+    });
+
+    finishHistoryWhenNeeded(before, after);
+    return;
+  }
+
+  if (stepKind === 'layoff') {
+    const player = before.players.find((item) => item.seat === seat);
+    const removed = removedHandCards(before, after, seat);
+    const changed = findChangedMeld(before, after);
+
+    let action: GameActionType = 'layoff-own';
+
+    if (
+      player &&
+      changed.afterMeld &&
+      changed.afterMeld.ownerTeam !== player.team
+    ) {
+      action =
+        changed.afterMeld.type === 'set'
+          ? 'close-opponent-set'
+          : 'replace-opponent-run';
+    }
+
+    const scoringBefore = before.scoringCards
+      .filter((item) => item.ownerSeat === seat)
+      .reduce((total, item) => total + item.card.points, 0);
+
+    const scoringAfter = after.scoringCards
+      .filter((item) => item.ownerSeat === seat)
+      .reduce((total, item) => total + item.card.points, 0);
+
+    recordHistoryAction(before, after, {
+      seat,
+      action,
+      cardIds: removed.map((card) => card.id),
+      meldId: changed.afterMeld?.id ?? changed.beforeMeld?.id,
+      pointsGained: Math.max(0, scoringAfter - scoringBefore),
+      requiredCardUsed: Boolean(
+        before.requiredDiscardCardId &&
+          after.requiredDiscardCardId === null,
+      ),
+      opponentMeldLocked: Boolean(
+        player &&
+          changed.beforeMeld &&
+          changed.afterMeld &&
+          changed.afterMeld.ownerTeam !== player.team &&
+          !changed.beforeMeld.locked &&
+          changed.afterMeld.locked,
+      ),
+    });
+
+    finishHistoryWhenNeeded(before, after);
+    return;
+  }
+
+  const discardedCard = after.discard[after.discard.length - 1];
+
+  recordHistoryAction(before, after, {
+    seat,
+    action: 'discard',
+    cardIds: discardedCard ? [discardedCard.id] : [],
+    roundEnded:
+      after.phase === 'roundOver' ||
+      after.phase === 'gameOver',
+  });
+
+  finishHistoryWhenNeeded(before, after);
+}
+
 export function useAnastra(targetScore: number) {
   const [state, setState] = useState<GameState>(() =>
     createRound({ targetScore }),
   );
+
   const [message, setMessage] = useState<UIMessage | null>(null);
   const [aiThinking, setAiThinking] = useState(false);
 
   const stateRef = useRef(state);
   stateRef.current = state;
 
+  const historyStartedRef = useRef(false);
   const discardTakeBackupRef = useRef<GameState | null>(null);
+  const pendingDiscardHistoryRef =
+    useRef<PendingDiscardHistory | null>(null);
+
   const timeouts = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   const clearTimers = useCallback(() => {
@@ -42,6 +302,12 @@ export function useAnastra(targetScore: number) {
   }, []);
 
   useEffect(() => {
+    if (!historyStartedRef.current) {
+      resetHistorySession();
+      startHistoryGame(stateRef.current);
+      historyStartedRef.current = true;
+    }
+
     return clearTimers;
   }, [clearTimers]);
 
@@ -52,9 +318,34 @@ export function useAnastra(targetScore: number) {
     [],
   );
 
+  const flushPendingDiscardHistory = useCallback(() => {
+    const pending = pendingDiscardHistoryRef.current;
+
+    if (!pending) {
+      return;
+    }
+
+    recordHistoryAction(
+      pending.stateBefore,
+      pending.stateAfter,
+      {
+        seat: 0,
+        action: 'draw-discard',
+        cardIds: pending.cardIds,
+        discardStartIndex: pending.selectedIndex,
+        cardsTakenCount: pending.cardsTakenCount,
+      },
+    );
+
+    pendingDiscardHistoryRef.current = null;
+  }, []);
+
   // AI turlarını otomatik oynat.
   useEffect(() => {
-    if (state.phase === 'roundOver' || state.phase === 'gameOver') {
+    if (
+      state.phase === 'roundOver' ||
+      state.phase === 'gameOver'
+    ) {
       return;
     }
 
@@ -67,9 +358,12 @@ export function useAnastra(targetScore: number) {
     }
 
     discardTakeBackupRef.current = null;
+    pendingDiscardHistoryRef.current = null;
     setAiThinking(true);
 
+    const aiSeat = state.currentSeat;
     const generator = playAITurn(state);
+    let previousAIState = state;
 
     const runStep = () => {
       const result = generator.next();
@@ -80,6 +374,17 @@ export function useAnastra(targetScore: number) {
       }
 
       const step = result.value;
+
+      if (step.kind !== 'done') {
+        recordAITransition(
+          previousAIState,
+          step.state,
+          aiSeat,
+          step.kind,
+        );
+      }
+
+      previousAIState = step.state;
       setState(step.state);
 
       if (step.kind === 'done') {
@@ -102,9 +407,7 @@ export function useAnastra(targetScore: number) {
     const initialTimer = setTimeout(runStep, 600);
     timeouts.current.push(initialTimer);
 
-    return () => {
-      clearTimers();
-    };
+    return clearTimers;
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.currentSeat, state.phase]);
@@ -112,20 +415,38 @@ export function useAnastra(targetScore: number) {
   const humanDrawDeck = useCallback(() => {
     const currentState = stateRef.current;
 
-    if (currentState.currentSeat !== 0 || currentState.phase !== 'draw') {
+    if (
+      currentState.currentSeat !== 0 ||
+      currentState.phase !== 'draw'
+    ) {
       return;
     }
 
     discardTakeBackupRef.current = null;
+    pendingDiscardHistoryRef.current = null;
     setMessage(null);
-    setState(drawFromDeck(currentState));
+
+    const nextState = drawFromDeck(currentState);
+    const added = addedHandCards(currentState, nextState, 0);
+
+    recordHistoryAction(currentState, nextState, {
+      seat: 0,
+      action: 'draw-deck',
+      cardIds: added.map((card) => card.id),
+    });
+
+    finishHistoryWhenNeeded(currentState, nextState);
+    setState(nextState);
   }, []);
 
   const humanDrawDiscard = useCallback(
     (selectedIndex?: number) => {
       const currentState = stateRef.current;
 
-      if (currentState.currentSeat !== 0 || currentState.phase !== 'draw') {
+      if (
+        currentState.currentSeat !== 0 ||
+        currentState.phase !== 'draw'
+      ) {
         return;
       }
 
@@ -151,17 +472,37 @@ export function useAnastra(targetScore: number) {
 
       discardTakeBackupRef.current = currentState;
 
-      const nextState = drawFromDiscard(currentState, effectiveIndex);
+      const nextState = drawFromDiscard(
+        currentState,
+        effectiveIndex,
+      );
+
       const handDidNotChange =
-        nextState.players[0].hand.length === currentState.players[0].hand.length;
+        nextState.players[0].hand.length ===
+        currentState.players[0].hand.length;
+
       const discardDidNotChange =
-        nextState.discard.length === currentState.discard.length;
+        nextState.discard.length ===
+        currentState.discard.length;
 
       if (handDidNotChange && discardDidNotChange) {
         discardTakeBackupRef.current = null;
+        pendingDiscardHistoryRef.current = null;
         flash('Yerden kart alma işlemi gerçekleşmedi.', 'error');
         return;
       }
+
+      const added = addedHandCards(currentState, nextState, 0);
+
+      pendingDiscardHistoryRef.current = {
+        stateBefore: currentState,
+        stateAfter: nextState,
+        selectedIndex:
+          effectiveIndex ??
+          currentState.discard.length - 1,
+        cardIds: added.map((card) => card.id),
+        cardsTakenCount: added.length,
+      };
 
       setState(nextState);
 
@@ -170,36 +511,26 @@ export function useAnastra(targetScore: number) {
       );
 
       if (!player.hasOpened) {
-        if (requiredCard) {
-          flash(
-            requiredCard.rank +
-              ' kartını aldın. Bu kartı açılış perlerinden birinde kullanarak elini açmalısın. Açamazsan Yerden Almayı İptal Et düğmesine basabilirsin.',
-            'info',
-          );
-        } else {
-          flash(
-            'Rakibin son attığı kartı aldın. Bu kartla elini açmalısın.',
-            'info',
-          );
-        }
+        flash(
+          requiredCard
+            ? requiredCard.rank +
+                ' kartını aldın. Bu kartı açılış perlerinden birinde kullanarak elini açmalısın. Açamazsan Yerden Almayı İptal Et düğmesine basabilirsin.'
+            : 'Rakibin son attığı kartı aldın. Bu kartla elini açmalısın.',
+          'info',
+        );
         return;
       }
 
-      if (requiredCard) {
-        flash(
-          'Yerden ' +
-            nextState.takenDiscardCardIds.length +
-            ' kart aldın. ' +
-            requiredCard.rank +
-            ' kartını şimdi işlemelisin. Uygun değilse işlemi iptal edebilirsin.',
-          'info',
-        );
-      } else {
-        flash(
-          'Yerden kartları aldın. Seçtiğin ilk kartı şimdi işlemelisin.',
-          'info',
-        );
-      }
+      flash(
+        requiredCard
+          ? 'Yerden ' +
+              nextState.takenDiscardCardIds.length +
+              ' kart aldın. ' +
+              requiredCard.rank +
+              ' kartını şimdi işlemelisin. Uygun değilse işlemi iptal edebilirsin.'
+          : 'Yerden kartları aldın. Seçtiğin ilk kartı şimdi işlemelisin.',
+        'info',
+      );
     },
     [flash],
   );
@@ -209,7 +540,10 @@ export function useAnastra(targetScore: number) {
     const currentState = stateRef.current;
 
     if (!backup) {
-      flash('Geri alınabilecek bir yerden kart alma işlemi yok.', 'error');
+      flash(
+        'Geri alınabilecek bir yerden kart alma işlemi yok.',
+        'error',
+      );
       return false;
     }
 
@@ -219,12 +553,17 @@ export function useAnastra(targetScore: number) {
       !currentState.tookFromDiscard ||
       !currentState.requiredDiscardCardId
     ) {
-      flash('Bu aşamada yerden kart alma işlemi geri alınamaz.', 'error');
+      flash(
+        'Bu aşamada yerden kart alma işlemi geri alınamaz.',
+        'error',
+      );
       return false;
     }
 
     discardTakeBackupRef.current = null;
+    pendingDiscardHistoryRef.current = null;
     setState(backup);
+
     flash(
       'Yerden aldığın kartları geri koydun. Desteden çekebilir veya başka bir yer kartını deneyebilirsin.',
       'info',
@@ -236,6 +575,7 @@ export function useAnastra(targetScore: number) {
   const humanOpen = useCallback(
     (meldCardIds: string[][]) => {
       const currentState = stateRef.current;
+      const playerBefore = currentState.players[0];
       const result = openHand(currentState, 0, meldCardIds);
 
       if (!result.ok) {
@@ -243,12 +583,42 @@ export function useAnastra(targetScore: number) {
         return false;
       }
 
+      flushPendingDiscardHistory();
+
+      const createdMelds = newMeldsOwnedBySeat(
+        currentState,
+        result.state,
+        0,
+      );
+
+      recordHistoryAction(currentState, result.state, {
+        seat: 0,
+        action: playerBefore.hasOpened
+          ? 'create-meld'
+          : 'open-hand',
+        cardIds: meldCardIds.flat(),
+        openingPoints: createdMelds.reduce(
+          (total, meld) => total + meldPoints(meld.cards),
+          0,
+        ),
+        requiredCardUsed: Boolean(
+          currentState.requiredDiscardCardId &&
+            result.state.requiredDiscardCardId === null,
+        ),
+      });
+
+      finishHistoryWhenNeeded(currentState, result.state);
       discardTakeBackupRef.current = null;
       setState(result.state);
-      flash('Elini açtın!', 'success');
+
+      flash(
+        playerBefore.hasOpened ? 'Yeni per açtın!' : 'Elini açtın!',
+        'success',
+      );
+
       return true;
     },
-    [flash],
+    [flash, flushPendingDiscardHistory],
   );
 
   const humanLayOff = useCallback(
@@ -256,6 +626,12 @@ export function useAnastra(targetScore: number) {
       const currentState = stateRef.current;
       const usedRequiredCard =
         currentState.requiredDiscardCardId === cardId;
+
+      const targetMeld = currentState.melds.find(
+        (meld) => meld.id === meldId,
+      );
+
+      const player = currentState.players[0];
       const result = layOff(currentState, 0, cardId, meldId);
 
       if (!result.ok) {
@@ -264,19 +640,60 @@ export function useAnastra(targetScore: number) {
       }
 
       if (usedRequiredCard) {
+        flushPendingDiscardHistory();
         discardTakeBackupRef.current = null;
       }
 
+      let action: GameActionType = 'layoff-own';
+
+      if (targetMeld && targetMeld.ownerTeam !== player.team) {
+        action =
+          targetMeld.type === 'set'
+            ? 'close-opponent-set'
+            : 'replace-opponent-run';
+      }
+
+      const scoringBefore = currentState.scoringCards
+        .filter((item) => item.ownerSeat === 0)
+        .reduce((total, item) => total + item.card.points, 0);
+
+      const scoringAfter = result.state.scoringCards
+        .filter((item) => item.ownerSeat === 0)
+        .reduce((total, item) => total + item.card.points, 0);
+
+      const updatedMeld = result.state.melds.find(
+        (meld) => meld.id === meldId,
+      );
+
+      recordHistoryAction(currentState, result.state, {
+        seat: 0,
+        action,
+        cardIds: [cardId],
+        meldId,
+        pointsGained: Math.max(0, scoringAfter - scoringBefore),
+        requiredCardUsed: usedRequiredCard,
+        opponentMeldLocked: Boolean(
+          targetMeld &&
+            updatedMeld &&
+            targetMeld.ownerTeam !== player.team &&
+            !targetMeld.locked &&
+            updatedMeld.locked,
+        ),
+      });
+
+      finishHistoryWhenNeeded(currentState, result.state);
       setState(result.state);
+
       flash(
         usedRequiredCard
           ? 'Yerden aldığın zorunlu kartı işledin.'
           : 'Kartı pere işledin.',
         'success',
       );
+
       return true;
     },
-    [flash],
+    [flash, flushPendingDiscardHistory],
   );
 
   const humanDiscard = useCallback(
@@ -289,12 +706,62 @@ export function useAnastra(targetScore: number) {
         return false;
       }
 
+      recordHistoryAction(currentState, result.state, {
+        seat: 0,
+        action: 'discard',
+        cardIds: [cardId],
+        roundEnded:
+          result.state.phase === 'roundOver' ||
+          result.state.phase === 'gameOver',
+      });
+
+      finishHistoryWhenNeeded(currentState, result.state);
       discardTakeBackupRef.current = null;
+      pendingDiscardHistoryRef.current = null;
       setState(result.state);
       setMessage(null);
+
       return true;
     },
     [flash],
+  );
+
+
+  /*
+   * İnsan oyuncunun elindeki kartların görsel sırasını
+   * değiştirir. Bu işlem oyun hamlesi değildir ve
+   * History sistemine kaydedilmez.
+   */
+  const reorderHand = useCallback(
+    (
+      fromIndex: number,
+      toIndex: number,
+    ) => {
+      const currentState =
+        stateRef.current;
+
+      if (
+        fromIndex === toIndex
+      ) {
+        return;
+      }
+
+      const nextState =
+        reorderPlayerHand(
+          currentState,
+          0,
+          fromIndex,
+          toIndex,
+        );
+
+      stateRef.current =
+        nextState;
+
+      setState(
+        nextState,
+      );
+    },
+    [],
   );
 
   const nextRound = useCallback(() => {
@@ -302,14 +769,17 @@ export function useAnastra(targetScore: number) {
 
     clearTimers();
     discardTakeBackupRef.current = null;
-    setState(
-      createRound({
-        targetScore: currentState.targetScore,
-        dealerSeat: (currentState.dealerSeat + 1) % 4,
-        teamScores: currentState.teamScores,
-        roundNumber: currentState.roundNumber + 1,
-      }),
-    );
+    pendingDiscardHistoryRef.current = null;
+
+    const nextState = createRound({
+      targetScore: currentState.targetScore,
+      dealerSeat: (currentState.dealerSeat + 1) % 4,
+      teamScores: currentState.teamScores,
+      roundNumber: currentState.roundNumber + 1,
+    });
+
+    startHistoryRound(nextState);
+    setState(nextState);
     setMessage(null);
   }, [clearTimers]);
 
@@ -317,7 +787,17 @@ export function useAnastra(targetScore: number) {
     (target: number) => {
       clearTimers();
       discardTakeBackupRef.current = null;
-      setState(createRound({ targetScore: target }));
+      pendingDiscardHistoryRef.current = null;
+
+      resetHistorySession();
+
+      const nextState = createRound({
+        targetScore: target,
+      });
+
+      startHistoryGame(nextState);
+      historyStartedRef.current = true;
+      setState(nextState);
       setMessage(null);
     },
     [clearTimers],
@@ -334,6 +814,7 @@ export function useAnastra(targetScore: number) {
     humanOpen,
     humanLayOff,
     humanDiscard,
+    reorderHand,
     nextRound,
     newGame,
     seatTeam,

@@ -3,7 +3,7 @@ import { useMemo, useState } from 'react';
 import { useAnastra } from '../hooks/useAnastra';
 import { PlayerHand } from '../components/PlayerHand';
 import { OpponentSeat } from '../components/OpponentSeat';
-import { MeldsArea } from '../components/MeldsArea';
+import { TableMeldArea } from '../components/TableMeldArea';
 import { ScorePanel } from '../components/ScorePanel';
 import { CardBack, CardView } from '../components/CardView';
 import {
@@ -22,7 +22,8 @@ import {
 import { suggestMelds } from '../game/ai';
 import type { Card } from '../game/types';
 
-export default function Home() {
+
+function ExistingGameHome() {
   const [started, setStarted] = useState(false);
   const [target, setTarget] = useState(751);
 
@@ -38,6 +39,7 @@ export default function Home() {
     humanOpen,
     humanLayOff,
     humanDiscard,
+    reorderHand,
     nextRound,
     newGame,
   } = anastra;
@@ -50,6 +52,7 @@ export default function Home() {
     string[][]
   >([]);
   const [layoffMode, setLayoffMode] = useState(false);
+  const [previewMeldId, setPreviewMeldId] = useState<string | null>(null);
 
   const me = state.players[0];
   const isMyTurn = state.currentSeat === 0;
@@ -246,23 +249,25 @@ export default function Home() {
       resetLocalActions();
     }
   };
-
   const onMeldClick = (meldId: string) => {
     if (
-      !layoffMode ||
-      selectedCards.length !== 1
+      layoffMode &&
+      selectedCards.length === 1 &&
+      appendableMeldIds.has(meldId)
     ) {
+      const successful = humanLayOff(
+        selectedCards[0].id,
+        meldId,
+      );
+
+      if (successful) {
+        clearSelection();
+      }
+
       return;
     }
 
-    const successful = humanLayOff(
-      selectedCards[0].id,
-      meldId,
-    );
-
-    if (successful) {
-      clearSelection();
-    }
+    setPreviewMeldId(meldId);
   };
 
   const hint = () => {
@@ -320,30 +325,30 @@ export default function Home() {
     state.phase === 'gameOver';
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-emerald-800 via-emerald-900 to-slate-900 text-white flex flex-col">
-      <div className="flex items-center justify-between px-3 py-2 bg-black/30">
-        <h1 className="text-lg md:text-xl font-black text-amber-300 tracking-wide">
+    <div className="anastra-page text-white flex flex-col">
+      <div className="game-topbar">
+        <h1 className="game-brand text-lg md:text-xl font-black">
           ANASTRA
         </h1>
 
-        <div className="flex gap-3 text-xs md:text-sm">
-          <span className="text-sky-300">
+        <div className="flex flex-wrap justify-end gap-2 text-xs md:text-sm">
+          <span className="score-chip text-sky-300">
             T1: {state.teamScores[0]}
           </span>
 
-          <span className="text-rose-300">
+          <span className="score-chip text-rose-300">
             T2: {state.teamScores[1]}
           </span>
 
-          <span className="text-white/50">
+          <span className="score-chip text-white/60">
             Baraj {state.openThreshold}
           </span>
         </div>
       </div>
 
-      <div className="flex-1 flex flex-col lg:flex-row gap-2 p-2 md:p-3">
-        <div className="flex-1 flex flex-col gap-2">
-          <div className="flex justify-center">
+      <div className="anastra-table-shell">
+        <div className="anastra-table">
+          <div className="table-seat table-seat-top">
             <OpponentSeat
               player={state.players[2]}
               isCurrent={state.currentSeat === 2}
@@ -352,131 +357,16 @@ export default function Home() {
             />
           </div>
 
-          <div className="flex items-center justify-between gap-2">
+          <div className="table-seat table-seat-left">
             <OpponentSeat
               player={state.players[1]}
               isCurrent={state.currentSeat === 1}
               thinking={aiThinking}
               position="left"
             />
+          </div>
 
-            <div className="flex items-start justify-center gap-3 min-w-0">
-              <div className="flex flex-col items-center gap-1 shrink-0">
-                <button
-                  type="button"
-                  onClick={humanDrawDeck}
-                  disabled={
-                    !isMyTurn ||
-                    state.phase !== 'draw'
-                  }
-                  className="disabled:opacity-40 transition-transform hover:scale-105"
-                >
-                  <CardBack size="lg" />
-                </button>
-
-                <span className="text-[10px] text-white/60">
-                  Deste ({state.deck.length})
-                </span>
-              </div>
-
-              <div className="flex flex-col items-center gap-1 min-w-0">
-                {state.discard.length > 0 ? (
-                  <div className="max-w-[58vw] md:max-w-[480px] overflow-x-auto overflow-y-visible pt-5 pb-5">
-                    <div className="flex items-end px-3 min-w-max">
-                      {state.discard.map(
-                        (card, index) => {
-                          const isTop =
-                            index ===
-                            state.discard.length - 1;
-
-                          /*
-                           * El açılmadıysa yalnızca son kart alınabilir.
-                           * El açıldıysa yerdeki bütün kartlar seçilebilir.
-                           */
-                          const canSelect =
-                            me.hasOpened
-                              ? true
-                              : isTop;
-
-                          const canInteract =
-                            isMyTurn &&
-                            state.phase === 'draw' &&
-                            canSelect;
-
-                          return (
-                            <button
-                              key={card.id}
-                              type="button"
-                              onClick={() => {
-                                if (!canInteract) {
-                                  return;
-                                }
-
-                                humanDrawDiscard(index);
-                              }}
-                              disabled={!canInteract}
-                              className={[
-                                'relative border-0 bg-transparent p-0 transition-all duration-150',
-                                index === 0
-                                  ? ''
-                                  : '-ml-9 md:-ml-11',
-                                canInteract
-                                  ? 'hover:-translate-y-4 hover:z-50 cursor-pointer'
-                                  : 'opacity-60 cursor-not-allowed',
-                              ].join(' ')}
-                              style={{
-                                zIndex: index + 1,
-                              }}
-                              title={
-                                canInteract
-                                  ? me.hasOpened
-                                    ? 'Bu karttan itibaren yerdeki kartları al'
-                                    : 'Rakibin son attığı kartı al'
-                                  : 'Bu kart şu anda alınamaz'
-                              }
-                            >
-                              <div className="pointer-events-none select-none">
-                                <CardView
-                                  card={card}
-                                  size="lg"
-                                  disabled
-                                />
-                              </div>
-
-                              {index === 0 && (
-                                <span className="pointer-events-none absolute -bottom-4 left-0 text-[9px] text-white/50 whitespace-nowrap">
-                                  En alt
-                                </span>
-                              )}
-
-                              {isTop && (
-                                <span className="pointer-events-none absolute -bottom-4 right-0 text-[9px] text-amber-300 whitespace-nowrap">
-                                  En üst
-                                </span>
-                              )}
-
-                              {canInteract &&
-                                me.hasOpened && (
-                                  <span className="pointer-events-none absolute -top-4 left-1/2 -translate-x-1/2 rounded-full bg-emerald-400 px-1.5 py-0.5 text-[8px] font-bold text-slate-950 whitespace-nowrap">
-                                    Seç
-                                  </span>
-                                )}
-                            </button>
-                          );
-                        },
-                      )}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="w-16 h-24 md:w-20 md:h-28 rounded-lg border-2 border-dashed border-white/20" />
-                )}
-
-                <span className="text-[10px] text-white/60">
-                  Yer ({state.discard.length})
-                </span>
-              </div>
-            </div>
-
+          <div className="table-seat table-seat-right">
             <OpponentSeat
               player={state.players[3]}
               isCurrent={state.currentSeat === 3}
@@ -485,107 +375,277 @@ export default function Home() {
             />
           </div>
 
-          <div className="flex-1 rounded-xl bg-black/20 p-2 min-h-[100px] flex items-center">
-            <MeldsArea
-              melds={state.melds}
+          <div className="table-meld-zone table-meld-zone-top">
+            <TableMeldArea
+              melds={state.melds.filter(
+                (meld) =>
+                  meld.ownerSeat === 2,
+              )}
+              orientation="top"
               layoffMode={layoffMode}
               onMeldClick={onMeldClick}
-              appendableMeldIds={
-                appendableMeldIds
-              }
+              appendableMeldIds={appendableMeldIds}
             />
           </div>
 
-          {state.scoringCards.length > 0 && (
-            <div className="grid gap-2 md:grid-cols-2">
-              {[0, 1].map((team) => {
+          <div className="table-meld-zone table-meld-zone-left">
+            <TableMeldArea
+              melds={state.melds.filter(
+                (meld) =>
+                  meld.ownerSeat === 1,
+              )}
+              orientation="left"
+              layoffMode={layoffMode}
+              onMeldClick={onMeldClick}
+              appendableMeldIds={appendableMeldIds}
+            />
+          </div>
+
+          <div className="table-meld-zone table-meld-zone-right">
+            <TableMeldArea
+              melds={state.melds.filter(
+                (meld) =>
+                  meld.ownerSeat === 3,
+              )}
+              orientation="right"
+              layoffMode={layoffMode}
+              onMeldClick={onMeldClick}
+              appendableMeldIds={appendableMeldIds}
+            />
+          </div>
+
+          <div className="table-center">
+            <div className="table-deck-area">
+              <button
+                type="button"
+                onClick={humanDrawDeck}
+                disabled={
+                  !isMyTurn ||
+                  state.phase !== 'draw'
+                }
+                className="deck-stack disabled:opacity-40"
+              >
+                <CardBack size="lg" />
+              </button>
+
+              <span className="table-center-label">
+                Deste ({state.deck.length})
+              </span>
+            </div>
+            {previewMeldId && (() => {
+  const meld = state.melds.find(
+    (m) => m.id === previewMeldId,
+  );
+
+  if (!meld) return null;
+
+  return (
+    <div
+      className="meld-preview-overlay"
+      onClick={() =>
+        setPreviewMeldId(null)
+      }
+    >
+      <div
+        className="meld-preview-window"
+        onClick={(e) =>
+          e.stopPropagation()
+        }
+      >
+        <button
+          type="button"
+          className="meld-preview-close"
+          onClick={() =>
+            setPreviewMeldId(null)
+          }
+        >
+          ✕
+        </button>
+
+        <div className="meld-preview-cards">
+          {meld.cards.map((card) => (
+            <CardView
+              key={card.id}
+              card={card}
+              size="lg"
+              disabled
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+})()}
+
+            <div className="table-discard-area">
+              {state.discard.length > 0 ? (
+                <div className="max-w-[58vw] md:max-w-[480px] overflow-x-auto overflow-y-visible pt-5 pb-5">
+                  <div className="flex items-end px-3 min-w-max">
+                    {state.discard.map(
+                      (card, index) => {
+                        const isTop =
+                          index ===
+                          state.discard.length - 1;
+
+                        /*
+                         * El açılmadıysa yalnızca son kart alınabilir.
+                         * El açıldıysa yerdeki bütün kartlar seçilebilir.
+                         */
+                        const canSelect =
+                          me.hasOpened
+                            ? true
+                            : isTop;
+
+                        const canInteract =
+                          isMyTurn &&
+                          state.phase === 'draw' &&
+                          canSelect;
+
+                        return (
+                          <button
+                            key={card.id}
+                            type="button"
+                            onClick={() => {
+                              if (!canInteract) {
+                                return;
+                              }
+
+                              humanDrawDiscard(index);
+                            }}
+                            disabled={!canInteract}
+                            className={[
+                              'relative border-0 bg-transparent p-0 transition-all duration-150',
+                              index === 0
+                                ? ''
+                                : '-ml-9 md:-ml-11',
+                              canInteract
+                                ? 'hover:-translate-y-4 hover:z-50 cursor-pointer'
+                                : 'opacity-60 cursor-not-allowed',
+                            ].join(' ')}
+                            style={{
+                              zIndex: index + 1,
+                            }}
+                            title={
+                              canInteract
+                                ? me.hasOpened
+                                  ? 'Bu karttan itibaren yerdeki kartları al'
+                                  : 'Rakibin son attığı kartı al'
+                                : me.hasOpened
+                                  ? 'Sıra sende değil veya çekme aşamasında değilsin'
+                                  : 'El açmadan yalnızca son kart alınabilir'
+                            }
+                          >
+                            <div className="pointer-events-none select-none">
+                              <CardView
+                                card={card}
+                                size="lg"
+                                disabled
+                              />
+                            </div>
+                          </button>
+                        );
+                      },
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="table-empty-discard" />
+              )}
+
+              <span className="table-center-label">
+                Yer ({state.discard.length})
+              </span>
+            </div>
+          </div>
+
+          <div className="table-meld-zone table-meld-zone-bottom">
+            <TableMeldArea
+              melds={state.melds.filter(
+                (meld) =>
+                  meld.ownerSeat === 0,
+              )}
+              orientation="bottom"
+              layoffMode={layoffMode}
+              onMeldClick={onMeldClick}
+              appendableMeldIds={appendableMeldIds}
+            />
+          </div>
+
+          <div className="table-score-corners">
+            {[0, 1].map(
+              (team) => {
                 const teamCards =
                   state.scoringCards.filter(
                     (item) =>
                       item.ownerTeam === team,
                   );
 
-                if (teamCards.length === 0) {
+                if (
+                  teamCards.length === 0
+                ) {
                   return null;
                 }
 
-                const teamPoints =
+                const total =
                   teamCards.reduce(
-                    (sum, item) =>
+                    (
+                      sum,
+                      item,
+                    ) =>
                       sum +
                       item.card.points,
                     0,
                   );
 
                 return (
-                  <section
+                  <div
                     key={team}
-                    className="rounded-xl border border-white/10 bg-black/20 p-2"
+                    className={[
+                      'table-scoring-stack',
+                      team === 0
+                        ? 'ours'
+                        : 'theirs',
+                    ].join(' ')}
                   >
-                    <div className="mb-2 text-center text-[10px] font-medium uppercase tracking-wide text-white/70">
-                      {team === 0
-                        ? 'Bizim Kapalı Puan Kartlarımız'
-                        : 'Diğer Takımın Kapalı Puan Kartları'}
-                    </div>
+                    <CardBack size="sm" />
 
-                    <div className="flex flex-wrap justify-center gap-1">
-                      {teamCards.map(
-                        (item) => (
-                          <div
-                            key={item.id}
-                            className="relative"
-                            title={
-                              item.card.rank +
-                              ' · ' +
-                              item.card.points +
-                              ' puan'
-                            }
-                          >
-                            <div className="pointer-events-none">
-                              <CardBack size="sm" />
-                            </div>
+                    <span>
+                      ×{teamCards.length}
+                    </span>
 
-                            <span className="absolute -bottom-1 -right-1 rounded-full bg-amber-400 px-1 text-[8px] font-bold text-slate-950">
-                              {item.card.points}
-                            </span>
-                          </div>
-                        ),
-                      )}
-                    </div>
-
-                    <div className="mt-2 text-center text-[10px] text-amber-200">
-                      Toplam: {teamPoints} puan
-                    </div>
-                  </section>
+                    <strong>
+                      {total}p
+                    </strong>
+                  </div>
                 );
-              })}
-            </div>
-          )}
-        </div>
+              },
+            )}
+          </div>
 
-        <div className="lg:w-64">
-          <ScorePanel
-            state={state}
-            onShowRules={() =>
-              setShowRules(true)
-            }
-            onNewGame={() =>
-              setStarted(false)
-            }
-          />
+          <div className="table-score-panel">
+            <ScorePanel
+              state={state}
+              onShowRules={() =>
+                setShowRules(true)
+              }
+              onNewGame={() =>
+                setStarted(false)
+              }
+            />
+          </div>
         </div>
       </div>
 
-      <div className="bg-black/40 border-t border-white/10 p-2 md:p-3 space-y-2">
+      <div className="action-dock p-2 md:p-3 space-y-2">
         {message && (
           <div
             className={[
-              'text-center text-sm rounded-lg py-1.5 px-3',
+              'status-message text-center text-sm',
               message.type === 'error'
-                ? 'bg-red-500/20 text-red-200'
+                ? 'error'
                 : message.type === 'success'
-                  ? 'bg-emerald-500/20 text-emerald-200'
-                  : 'bg-sky-500/20 text-sky-200',
+                  ? 'success'
+                  : 'info',
             ].join(' ')}
           >
             {message.text}
@@ -654,6 +714,7 @@ export default function Home() {
           lastDrawnId={state.lastDrawnCardId}
           disabled={!isMyTurn}
           onToggle={toggleCard}
+          onReorder={reorderHand}
         />
 
         {isMyTurn &&
@@ -665,7 +726,7 @@ export default function Home() {
                     type="button"
                     onClick={addPendingMeld}
                     disabled={!selectedMeldType}
-                    className="rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 px-3 py-2 text-sm font-medium"
+                    className="game-button disabled:opacity-40 text-sm"
                   >
                     Per Ekle
                     {selectedMeldType
@@ -684,7 +745,7 @@ export default function Home() {
                       pendingMelds.length === 0 &&
                       !selectedMeldType
                     }
-                    className="rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 px-3 py-2 text-sm font-semibold"
+                    className="game-button primary disabled:opacity-40 text-sm"
                   >
                     Eli Aç
                   </button>
@@ -692,7 +753,7 @@ export default function Home() {
                   <button
                     type="button"
                     onClick={hint}
-                    className="rounded-lg bg-white/10 hover:bg-white/20 px-3 py-2 text-sm"
+                    className="game-button text-sm"
                   >
                     İpucu
                   </button>
@@ -711,10 +772,10 @@ export default function Home() {
                       clearSelection();
                     }}
                     className={[
-                      'rounded-lg px-3 py-2 text-sm font-medium',
+                      'game-button text-sm',
                       layoffMode
-                        ? 'bg-emerald-500 text-slate-900'
-                        : 'bg-indigo-600 hover:bg-indigo-500',
+                        ? 'primary'
+                        : '',
                     ].join(' ')}
                   >
                     {layoffMode
@@ -726,7 +787,7 @@ export default function Home() {
                     type="button"
                     onClick={doCreateNewMeld}
                     disabled={!selectedMeldType}
-                    className="rounded-lg bg-fuchsia-600 hover:bg-fuchsia-500 disabled:opacity-40 px-3 py-2 text-sm font-semibold"
+                    className="game-button disabled:opacity-40 text-sm"
                   >
                     Yeni Per Aç
                     {selectedMeldType
@@ -744,7 +805,7 @@ export default function Home() {
                 <button
                   type="button"
                   onClick={cancelDiscardTake}
-                  className="rounded-lg bg-red-600 hover:bg-red-500 px-3 py-2 text-sm font-semibold text-white"
+                  className="game-button danger text-sm"
                 >
                   Yerden Almayı İptal Et
                 </button>
@@ -757,7 +818,7 @@ export default function Home() {
                   selected.size !== 1 ||
                   canCancelDiscardTake
                 }
-                className="rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-900 disabled:opacity-40 px-3 py-2 text-sm font-semibold"
+                className="game-button gold disabled:opacity-40 text-sm"
               >
                 Kartı At
               </button>
@@ -770,7 +831,7 @@ export default function Home() {
               <button
                 type="button"
                 onClick={humanDrawDeck}
-                className="rounded-lg bg-emerald-600 hover:bg-emerald-500 px-6 py-2 text-sm font-semibold"
+                className="game-button primary px-6 text-sm"
               >
                 Desteden Çek
               </button>
@@ -797,4 +858,7 @@ export default function Home() {
       )}
     </div>
   );
+}
+export default function Home() {
+  return <ExistingGameHome />;
 }

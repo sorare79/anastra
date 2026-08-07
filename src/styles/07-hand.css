@@ -1,0 +1,19 @@
+.player-hand{
+    position:absolute;
+
+    left:50%;
+    bottom:16px;
+
+    transform:translateX(-50%);
+
+    width:78%;
+    height:120px;
+
+    display:flex;
+    justify-content:center;
+    align-items:flex-end;
+
+    border-radius:60px 60px 18px 18px;
+
+    background:rgba(0,0,0,.12);
+}

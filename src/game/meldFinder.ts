@@ -10,6 +10,57 @@ function meldKey(cards: Card[]): string {
 }
 
 /*
+ * Anastra'da As yalnızca yüksek karttır.
+ *
+ * Geçerli örnekler:
+ * Q-K-A
+ * J-Q-K-A
+ * 10-J-Q-K-A
+ *
+ * Geçersiz örnekler:
+ * A-2-3
+ * K-A-2
+ */
+function isAceHighOnlyRunCandidate(
+  cards: Card[],
+): boolean {
+  const hasAce = cards.some(
+    (card) => card.rank === 'A',
+  );
+
+  if (!hasAce) {
+    return true;
+  }
+
+  const sortedValues = cards
+    .map((card) => card.rankValue)
+    .sort((first, second) => first - second);
+
+  if (
+    sortedValues[
+      sortedValues.length - 1
+    ] !== 14
+  ) {
+    return false;
+  }
+
+  for (
+    let index = 1;
+    index < sortedValues.length;
+    index += 1
+  ) {
+    if (
+      sortedValues[index] !==
+      sortedValues[index - 1] + 1
+    ) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+/*
  * Verilen kart listesinin bütün alt kümelerini üretir.
  * Perler en az 3 kart olduğu için yalnızca 3 ve üzeri
  * büyüklükteki gruplar kontrol edilir.
@@ -29,10 +80,8 @@ function generateCombinations(
       return;
     }
 
-    // Kartı seçmeden ilerle.
     search(index + 1);
 
-    // Kartı seçerek ilerle.
     current.push(cards[index]);
     search(index + 1);
     current.pop();
@@ -44,26 +93,10 @@ function generateCombinations(
 
 /*
  * Eldeki bütün geçerli perleri bulur.
- *
- * Bu sürüm:
- * - Uzun bir serinin bütün geçerli alt serilerini bulur.
- * - İki destedeki farklı fiziksel kartları hesaba katar.
- * - Set ve run seçeneklerinin tamamını değerlendirir.
  */
 export function findMelds(hand: Card[]): Card[][] {
   const melds: Card[][] = [];
   const seen = new Set<string>();
-
-  /*
-   * Eller normalde 13-20 kart civarında olur.
-   * Tüm elin alt kümelerini doğrudan denemek yerine
-   * önce mantıklı aday gruplarına ayırıyoruz.
-   */
-
-  // -----------------------------------------
-  // SET ADAYLARI
-  // Aynı rank değerindeki kartlar
-  // -----------------------------------------
 
   const cardsByRank = new Map<string, Card[]>();
 
@@ -92,11 +125,6 @@ export function findMelds(hand: Card[]): Card[][] {
     }
   }
 
-  // -----------------------------------------
-  // RUN ADAYLARI
-  // Aynı suit içindeki kartlar
-  // -----------------------------------------
-
   const cardsBySuit = new Map<string, Card[]>();
 
   for (const card of hand) {
@@ -110,17 +138,15 @@ export function findMelds(hand: Card[]): Card[][] {
       continue;
     }
 
-    /*
-     * Aynı suit içindeki bütün kombinasyonları dener.
-     * Örneğin 3-4-5-6 için:
-     *
-     * 3-4-5
-     * 4-5-6
-     * 3-4-5-6
-     *
-     * seçeneklerini ayrı ayrı bulur.
-     */
     for (const combination of generateCombinations(cards)) {
+      if (
+        !isAceHighOnlyRunCandidate(
+          combination,
+        )
+      ) {
+        continue;
+      }
+
       if (!isValidMeld(combination)) {
         continue;
       }
@@ -145,11 +171,6 @@ interface MeldCandidate {
 
 /*
  * Çakışmayan perler arasından en iyi kombinasyonu seçer.
- *
- * Öncelik sırası:
- * 1. Masaya indirilen toplam kart sayısı
- * 2. Toplam per puanı
- * 3. Per sayısı
  */
 export function selectBestMelds(hand: Card[]): Card[][] {
   const allMelds = findMelds(hand);
@@ -182,10 +203,6 @@ export function selectBestMelds(hand: Card[]): Card[][] {
     };
   });
 
-  /*
-   * Daha güçlü adayların önce denenmesi,
-   * aramanın daha erken iyi bir çözüm bulmasını sağlar.
-   */
   candidates.sort((a, b) => {
     if (b.cards.length !== a.cards.length) {
       return b.cards.length - a.cards.length;
@@ -224,7 +241,6 @@ export function selectBestMelds(hand: Card[]): Card[][] {
       return;
     }
 
-    // Bu peri kullanmadan devam et.
     search(
       index + 1,
       usedMask,
@@ -235,7 +251,6 @@ export function selectBestMelds(hand: Card[]): Card[][] {
 
     const candidate = candidates[index];
 
-    // Bu per daha önce kullanılan kartlarla çakışıyorsa kullanılamaz.
     if ((candidate.mask & usedMask) !== 0n) {
       return;
     }
@@ -261,8 +276,6 @@ export function selectBestMelds(hand: Card[]): Card[][] {
 /*
  * Belirli bir kartın mutlaka kullanıldığı en iyi
  * per kombinasyonunu bulur.
- *
- * Yerden alınan son kartla açılış kontrolü için kullanılır.
  */
 export function selectBestMeldsUsingCard(
   hand: Card[],
