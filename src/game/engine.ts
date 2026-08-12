@@ -4,6 +4,7 @@ import type {
   GameState,
   Meld,
   Player,
+  RoundScoreRecord,
 } from './types';
 
 import {
@@ -54,6 +55,7 @@ export interface NewGameOptions {
   dealerSeat?: number;
   teamScores?: [number, number];
   roundNumber?: number;
+  scoreHistory?: RoundScoreRecord[];
 }
 
 export interface DiscardTakeOption {
@@ -117,6 +119,7 @@ export function createRound(
     teamScores: options.teamScores ?? [0, 0],
     targetScore: options.targetScore,
     roundScores: [0, 0],
+    scoreHistory: options.scoreHistory ?? [],
 
     log: [
       'Yeni el başladı. ' +
@@ -748,6 +751,23 @@ export function openHand(
   }
 
   /*
+   * Tur kart atılarak bitmelidir.
+   * Per açma / yeni per oluşturma işlemi oyuncunun
+   * elindeki bütün kartları tüketemez.
+   */
+  const remainingHandCount =
+    player.hand.length - usedIds.size;
+
+  if (remainingHandCount === 0) {
+    return {
+      ok: false,
+      state,
+      error:
+        'Per açtıktan sonra atacak en az bir kartın kalmalıdır.',
+    };
+  }
+
+  /*
    * Yerden alınan zorunlu kart varsa,
    * bu kart yeni oluşturulan perlerden birinde
    * mutlaka kullanılmalıdır.
@@ -949,6 +969,20 @@ export function layOff(
         meld.ownerTeam === player.team
           ? 'Bu kart kendi takımının perine eklenemez.'
           : 'Bu kart rakibin perini kapatamaz.',
+    };
+  }
+
+  /*
+   * Tur kart atılarak bitmelidir.
+   * Son eldeki kart pere işlenemez; oyuncunun
+   * atmak için en az bir kartı kalmalıdır.
+   */
+  if (player.hand.length === 1) {
+    return {
+      ok: false,
+      state,
+      error:
+        'Pere işledikten sonra atacak en az bir kartın kalmalıdır.',
     };
   }
 
@@ -1369,46 +1403,66 @@ export function endRound(
   reason: 'deck' | 'finished',
   finisherSeat?: number,
 ): GameState {
-  const teamMeldPoints: [number, number] = [0, 0];
+  // Skor defteri oyuncu bazında tutulur.
+  const playerPoints: [number, number, number, number] = [0, 0, 0, 0];
+  const playerPenalties: [number, number, number, number] = [0, 0, 0, 0];
 
+  // Açılan perlerin puanı, peri açan oyuncuya yazılır.
   for (const meld of state.melds) {
-    teamMeldPoints[meld.ownerTeam] +=
-      meldPoints(meld.cards);
+    if (meld.ownerSeat >= 0 && meld.ownerSeat < 4) {
+      playerPoints[meld.ownerSeat] += meldPoints(meld.cards);
+    }
   }
 
-  /*
-   * Rakip perlerine işlenen ters kartların puanı,
-   * kartı işleyen takıma yazılır.
-   */
+  // Rakip perinden kazanılan kapalı kart puanı, kazanan oyuncuya yazılır.
   for (const scoringCard of state.scoringCards) {
-    teamMeldPoints[scoringCard.ownerTeam] +=
-      scoringCard.card.points;
+    if (scoringCard.ownerSeat >= 0 && scoringCard.ownerSeat < 4) {
+      playerPoints[scoringCard.ownerSeat] += scoringCard.card.points;
+    }
   }
 
-  const teamPenalty: [number, number] = [0, 0];
-
+  // Her oyuncunun elde kalan kartları kendi cezasıdır.
   for (const player of state.players) {
-    teamPenalty[player.team] +=
-      handPenalty(player.hand);
+    if (player.seat >= 0 && player.seat < 4) {
+      playerPenalties[player.seat] = handPenalty(player.hand);
+    }
   }
 
+  // Takım 1 = seat 0 + seat 2, Takım 2 = seat 1 + seat 3.
   const roundScores: [number, number] = [
-    teamMeldPoints[0] - teamPenalty[0],
-    teamMeldPoints[1] - teamPenalty[1],
+    playerPoints[0] + playerPoints[2] -
+      playerPenalties[0] - playerPenalties[2],
+    playerPoints[1] + playerPoints[3] -
+      playerPenalties[1] - playerPenalties[3],
   ];
 
-  if (
-    reason === 'finished' &&
-    finisherSeat !== undefined
-  ) {
-    roundScores[
-      seatTeam(finisherSeat)
-    ] += 25;
-  }
-
+  // El bitirme bonusu YOK.
   const teamScores: [number, number] = [
     state.teamScores[0] + roundScores[0],
     state.teamScores[1] + roundScores[1],
+  ];
+
+  const roundRecord: RoundScoreRecord = {
+    roundNumber: state.roundNumber,
+    playerPoints: [
+      playerPoints[0],
+      playerPoints[1],
+      playerPoints[2],
+      playerPoints[3],
+    ],
+    playerPenalties: [
+      playerPenalties[0],
+      playerPenalties[1],
+      playerPenalties[2],
+      playerPenalties[3],
+    ],
+    teamRoundScores: [roundScores[0], roundScores[1]],
+    teamTotals: [teamScores[0], teamScores[1]],
+  };
+
+  const scoreHistory: RoundScoreRecord[] = [
+    ...state.scoreHistory,
+    roundRecord,
   ];
 
   let winnerTeam: number | null = null;
@@ -1419,11 +1473,7 @@ export function endRound(
     teamScores[1] >= state.targetScore
   ) {
     if (teamScores[0] !== teamScores[1]) {
-      winnerTeam =
-        teamScores[0] > teamScores[1]
-          ? 0
-          : 1;
-
+      winnerTeam = teamScores[0] > teamScores[1] ? 0 : 1;
       phase = 'gameOver';
     }
   }
@@ -1431,12 +1481,10 @@ export function endRound(
   let reasonMessage = 'Bir oyuncu elini bitirdi.';
 
   if (reason === 'deck') {
-    reasonMessage =
-      'Deste bitti, el sona erdi.';
+    reasonMessage = 'Deste bitti, el sona erdi.';
   } else if (finisherSeat !== undefined) {
     reasonMessage =
-      state.players[finisherSeat].name +
-      ' elini bitirdi.';
+      state.players[finisherSeat].name + ' elini bitirdi.';
   }
 
   return {
@@ -1444,6 +1492,7 @@ export function endRound(
     phase,
     roundScores,
     teamScores,
+    scoreHistory,
     winnerTeam,
     openThreshold: 51,
     requiredDiscardCardId: null,

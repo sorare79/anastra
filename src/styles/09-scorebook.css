@@ -1,0 +1,620 @@
+/* =========================================================
+   ANASTRA - SKOR DEFTERİ
+   ========================================================= */
+
+/* Sağdaki mevcut skor panelinin tıklanabilir alanı */
+
+.score-panel-trigger {
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.score-panel-open-hint {
+  margin-top: 4px;
+  text-align: center;
+  font-size: 10px;
+  opacity: 0.55;
+}
+
+
+/* =========================================================
+   MODAL ARKA PLANI
+   ========================================================= */
+
+.scorebook-overlay {
+  position: fixed;
+  inset: 0;
+
+  z-index: 10000;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 24px;
+
+  background: rgba(0, 0, 0, 0.72);
+
+  backdrop-filter: blur(4px);
+}
+
+
+/* =========================================================
+   KAĞIT
+   ========================================================= */
+
+.scorebook-paper {
+  position: relative;
+
+  width: min(760px, 94vw);
+  max-height: 88vh;
+
+  overflow-y: auto;
+
+  padding:
+    34px
+    34px
+    28px
+    62px;
+
+  color: #25364b;
+
+  border-radius: 4px;
+
+  /*
+   * Defterin yatay çizgileri
+   */
+  background-color: #f7f2df;
+
+  background-image:
+    repeating-linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent 31px,
+      rgba(77, 130, 170, 0.22) 32px,
+      transparent 33px
+    );
+
+  box-shadow:
+    0 24px 70px
+      rgba(0, 0, 0, 0.55),
+    0 2px 3px
+      rgba(0, 0, 0, 0.25);
+
+  /*
+   * El yazısına yakın görünüm.
+   * Harici font gerektirmiyor.
+   */
+  font-family:
+    "Comic Sans MS",
+    "Segoe Print",
+    cursive;
+}
+
+/*
+ * Defterin soldaki kırmızı çizgisi
+ */
+.scorebook-paper::before {
+  content: "";
+
+  position: absolute;
+
+  top: 0;
+  bottom: 0;
+  left: 42px;
+
+  width: 2px;
+
+  background:
+    rgba(195, 73, 73, 0.48);
+
+  pointer-events: none;
+}
+
+
+/* =========================================================
+   KAPAT
+   ========================================================= */
+
+.scorebook-close {
+  position: absolute;
+
+  top: 10px;
+  right: 14px;
+
+  width: 34px;
+  height: 34px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border: 0;
+  border-radius: 50%;
+
+  background:
+    rgba(41, 54, 70, 0.08);
+
+  color: #35445a;
+
+  font-family: Arial, sans-serif;
+  font-size: 25px;
+
+  cursor: pointer;
+}
+
+.scorebook-close:hover {
+  background:
+    rgba(41, 54, 70, 0.16);
+}
+
+
+/* =========================================================
+   BAŞLIK
+   ========================================================= */
+
+.scorebook-title {
+  margin-bottom: 20px;
+
+  text-align: center;
+
+  font-size: 25px;
+  font-weight: 700;
+
+  letter-spacing: 2px;
+
+  transform: rotate(-0.5deg);
+}
+
+
+/* =========================================================
+   OYUNCU BAŞLIKLARI
+   ========================================================= */
+
+.scorebook-header {
+  display: grid;
+
+  grid-template-columns:
+    repeat(4, minmax(0, 1fr));
+
+  border-top:
+    2px solid rgba(45, 65, 90, 0.55);
+
+  border-bottom:
+    2px solid rgba(45, 65, 90, 0.55);
+}
+
+.scorebook-player {
+  min-height: 45px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 6px;
+
+  font-size: 17px;
+  font-weight: 700;
+
+  border-right:
+    1px solid rgba(45, 65, 90, 0.35);
+}
+
+.scorebook-player:last-child {
+  border-right: 0;
+}
+
+/*
+ * İki takımı ortadan belirgin ayır.
+ */
+.scorebook-player:nth-child(2) {
+  border-right:
+    3px solid rgba(45, 65, 90, 0.7);
+}
+
+.scorebook-player.our-team {
+  color: #245c91;
+}
+
+.scorebook-player.opponent-team {
+  color: #7c3d43;
+}
+
+
+/* =========================================================
+   TAKIM BAŞLIKLARI
+   ========================================================= */
+
+.scorebook-team-labels {
+  display: grid;
+
+  grid-template-columns: 1fr 1fr;
+
+  margin-bottom: 8px;
+
+  text-align: center;
+
+  font-family: Arial, sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+
+  letter-spacing: 2px;
+
+  opacity: 0.55;
+}
+
+.scorebook-team-labels > div {
+  padding: 5px;
+}
+
+.scorebook-team-labels > div:first-child {
+  border-right:
+    3px solid rgba(45, 65, 90, 0.7);
+}
+
+
+/* =========================================================
+   TURLAR
+   ========================================================= */
+
+.scorebook-rounds {
+  min-height: 220px;
+}
+
+.scorebook-round {
+  position: relative;
+
+  margin-bottom: 13px;
+
+  border-bottom:
+    1px dashed
+      rgba(45, 65, 90, 0.25);
+}
+
+.scorebook-round-number {
+  position: absolute;
+
+  left: -50px;
+  top: 20px;
+
+  width: 45px;
+
+  text-align: right;
+
+  color: rgba(44, 56, 72, 0.65);
+
+  font-family: Arial, sans-serif;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+
+/* =========================================================
+   PUAN / CEZA SATIRLARI
+   ========================================================= */
+
+.scorebook-row {
+  display: grid;
+
+  grid-template-columns:
+    repeat(4, minmax(0, 1fr));
+}
+
+.scorebook-cell {
+  min-height: 34px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-right:
+    1px solid rgba(45, 65, 90, 0.25);
+
+  font-size: 21px;
+  font-weight: 700;
+}
+
+.scorebook-cell:last-child {
+  border-right: 0;
+}
+
+.scorebook-cell:nth-child(2) {
+  border-right:
+    3px solid rgba(45, 65, 90, 0.6);
+}
+
+
+/* Alınan puan */
+
+.score-row {
+  color: #245b94;
+
+  transform: rotate(-0.15deg);
+}
+
+
+/* Ceza */
+
+.penalty-row {
+  color: #a23c3c;
+
+  transform: rotate(0.12deg);
+}
+
+.penalty-row .scorebook-cell {
+  font-size: 18px;
+}
+
+
+/* =========================================================
+   HENÜZ TUR YOK
+   ========================================================= */
+
+.scorebook-empty {
+  padding: 70px 20px;
+
+  text-align: center;
+
+  color: rgba(40, 55, 70, 0.5);
+
+  font-size: 16px;
+}
+
+
+/* =========================================================
+   TAKIM TOPLAMLARI
+   ========================================================= */
+
+.scorebook-totals {
+  display: grid;
+
+  grid-template-columns: 1fr 1fr;
+
+  margin-top: 18px;
+
+  border-top:
+    3px double
+      rgba(45, 65, 90, 0.75);
+
+  border-bottom:
+    2px solid
+      rgba(45, 65, 90, 0.55);
+}
+
+.scorebook-team-total {
+  min-height: 78px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  padding: 8px;
+}
+
+.scorebook-team-total:first-child {
+  border-right:
+    3px solid rgba(45, 65, 90, 0.7);
+}
+
+.scorebook-team-total span {
+  font-family: Arial, sans-serif;
+
+  font-size: 10px;
+  font-weight: 700;
+
+  letter-spacing: 1px;
+
+  opacity: 0.65;
+}
+
+.scorebook-team-total strong {
+  margin-top: 2px;
+
+  font-size: 32px;
+
+  line-height: 1;
+}
+
+.our-total strong {
+  color: #245b94;
+}
+
+.opponent-total strong {
+  color: #a23c3c;
+}
+
+
+/* =========================================================
+   ALT NOT
+   ========================================================= */
+
+.scorebook-note {
+  margin-top: 12px;
+
+  text-align: center;
+
+  font-family: Arial, sans-serif;
+  font-size: 9px;
+
+  color: rgba(40, 55, 70, 0.55);
+
+  letter-spacing: 0.5px;
+}
+
+
+/* =========================================================
+   MOBİL / KÜÇÜK EKRAN
+   ========================================================= */
+
+@media (max-width: 640px) {
+
+  .scorebook-overlay {
+    padding: 10px;
+  }
+
+  .scorebook-paper {
+    width: 100%;
+
+    max-height: 94vh;
+
+    padding:
+      30px
+      14px
+      20px
+      38px;
+  }
+
+  .scorebook-paper::before {
+    left: 27px;
+  }
+
+  .scorebook-title {
+    font-size: 19px;
+  }
+
+  .scorebook-player {
+    font-size: 13px;
+  }
+
+  .scorebook-cell {
+    font-size: 17px;
+  }
+
+  .penalty-row
+  .scorebook-cell {
+    font-size: 15px;
+  }
+
+  .scorebook-round-number {
+    left: -34px;
+
+    width: 30px;
+
+    font-size: 7px;
+  }
+
+  .scorebook-team-total strong {
+    font-size: 26px;
+  }
+}
+/* =========================================================
+   SCOREBOOK MODAL - ZORUNLU YERLEŞİM
+   ========================================================= */
+
+.scorebook-overlay {
+  position: fixed !important;
+  inset: 0 !important;
+
+  width: 100vw !important;
+  height: 100vh !important;
+
+  z-index: 999999 !important;
+
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  padding: 30px !important;
+
+  background:
+    rgba(0, 0, 0, 0.78) !important;
+
+  overflow: auto !important;
+}
+
+.scorebook-paper {
+  position: relative !important;
+
+  width: min(
+    760px,
+    calc(100vw - 60px)
+  ) !important;
+
+  max-height:
+    calc(100vh - 60px) !important;
+
+  overflow-y: auto !important;
+
+  padding:
+    42px
+    36px
+    32px
+    62px !important;
+
+  margin: auto !important;
+
+  color: #27384b !important;
+
+  background-color:
+    #f6f0d9 !important;
+
+  background-image:
+    repeating-linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent 31px,
+      rgba(65, 115, 160, 0.20) 32px,
+      transparent 33px
+    ) !important;
+
+  border-radius: 4px !important;
+
+  box-shadow:
+    0 25px 80px
+    rgba(0, 0, 0, 0.65) !important;
+
+  font-family:
+    "Comic Sans MS",
+    "Segoe Print",
+    cursive !important;
+}
+
+.scorebook-paper::before {
+  content: "";
+
+  position: absolute;
+
+  top: 0;
+  bottom: 0;
+  left: 42px;
+
+  width: 2px;
+
+  background:
+    rgba(190, 65, 65, 0.45);
+}
+
+.scorebook-header,
+.scorebook-row {
+  display: grid !important;
+
+  grid-template-columns:
+    repeat(
+      4,
+      minmax(0, 1fr)
+    ) !important;
+}
+
+.scorebook-team-labels,
+.scorebook-totals {
+  display: grid !important;
+
+  grid-template-columns:
+    1fr 1fr !important;
+}
+
+.scorebook-close {
+  position: absolute !important;
+
+  top: 10px !important;
+  right: 14px !important;
+
+  z-index: 5;
+
+  color: #222 !important;
+}

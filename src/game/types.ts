@@ -35,8 +35,6 @@ export interface Card {
    * K = 13
    * ...
    * 2 = 2
-   *
-   * A-2-3 özel durumu rules.ts içinde kontrol edilir.
    */
   rankValue: number;
 
@@ -69,6 +67,13 @@ export interface Meld {
    */
   ownerTeam: number;
 
+  /*
+   * Peri açan oyuncunun koltuğu.
+   *
+   * Skor defterinde puanı
+   * doğru oyuncunun sütununa
+   * yazabilmek için kullanılır.
+   */
   ownerSeat: number;
 
   /*
@@ -87,8 +92,8 @@ export interface Meld {
  *
  * Bu kart artık elde değildir.
  * Hiçbir perde değildir.
- * Sadece oyun sonunda
- * sahibine puan kazandırır.
+ * Oyun sonunda sahibine
+ * puan kazandırır.
  */
 export interface ScoringCard {
   id: string;
@@ -97,6 +102,13 @@ export interface ScoringCard {
 
   ownerTeam: number;
 
+  /*
+   * Kartı kazanan oyuncu.
+   *
+   * Skor defterinde alınan puanı
+   * oyuncu bazında göstermek için
+   * kullanılır.
+   */
   ownerSeat: number;
 
   /*
@@ -132,6 +144,96 @@ export type Phase =
   | 'roundOver'
   | 'gameOver';
 
+/*
+ * ==================================================
+ * SKOR DEFTERİ
+ * ==================================================
+ *
+ * Her el/tur bittiğinde skor defterine
+ * bir kayıt eklenir.
+ *
+ * Sütun sırası:
+ *
+ * 0 = Sen
+ * 1 = Eda
+ * 2 = Ege
+ * 3 = Duru
+ *
+ * Takımlar:
+ *
+ * Takım 1 = seat 0 + seat 2
+ * Takım 2 = seat 1 + seat 3
+ *
+ * Not:
+ * Arayüz oyuncuları takım sırasına göre
+ * istediğimiz sütunlara yerleştirebilir.
+ */
+export interface RoundScoreRecord {
+  /*
+   * Kaçıncı el/tur olduğu.
+   */
+  roundNumber: number;
+
+  /*
+   * Her oyuncunun o turda
+   * kazandığı pozitif puan.
+   *
+   * Örnek:
+   * [70, 60, 80, 0]
+   */
+  playerPoints: [
+    number,
+    number,
+    number,
+    number,
+  ];
+
+  /*
+   * Her oyuncunun o tur sonunda
+   * elinde kalan kartlardan gelen cezası.
+   *
+   * Burada değerler pozitif tutulur.
+   *
+   * Örnek:
+   * 20 ceza = 20
+   *
+   * Defter arayüzünde kırmızı olarak
+   * "20" şeklinde gösterilebilir.
+   */
+  playerPenalties: [
+    number,
+    number,
+    number,
+    number,
+  ];
+
+  /*
+   * O turun net takım puanları.
+   *
+   * Formül:
+   *
+   * takım oyuncularının aldığı puanlar
+   * -
+   * takım oyuncularının cezaları
+   */
+  teamRoundScores: [
+    number,
+    number,
+  ];
+
+  /*
+   * Bu tur tamamlandıktan sonraki
+   * genel takım toplamları.
+   *
+   * Skor defterinin en altında
+   * gösterilecek değerler.
+   */
+  teamTotals: [
+    number,
+    number,
+  ];
+}
+
 export interface GameState {
   players: Player[];
 
@@ -162,9 +264,31 @@ export interface GameState {
    */
   openThreshold: number;
 
-  teamScores: [number, number];
+  /*
+   * Oyunun genel takım skorları.
+   */
+  teamScores: [
+    number,
+    number,
+  ];
 
-  roundScores: [number, number];
+  /*
+   * Sadece mevcut / son elin
+   * net takım puanları.
+   */
+  roundScores: [
+    number,
+    number,
+  ];
+
+  /*
+   * Skor defterinde geçmiş elleri
+   * alt alta göstermek için tutulur.
+   *
+   * Her el bittiğinde buraya
+   * bir RoundScoreRecord eklenir.
+   */
+  scoreHistory: RoundScoreRecord[];
 
   targetScore: number;
 
@@ -183,13 +307,16 @@ export interface GameState {
    * aynı tur kullanılmak
    * zorunda olan ilk kart.
    */
-  requiredDiscardCardId: string | null;
+  requiredDiscardCardId:
+    string | null;
 
   /*
    * Yerden birlikte alınan
    * tüm kartlar.
    */
-  takenDiscardCardIds: string[];
+  takenDiscardCardIds:
+    string[];
 
-  winnerTeam: number | null;
+  winnerTeam:
+    number | null;
 }

@@ -1,40 +1,105 @@
-.table-meld-zone-top{
-    position:absolute;
+/* =========================================================
+   SOL / SAĞ OYUNCULAR - TÜM PERLER GÖRÜNSÜN
+   ========================================================= */
 
-    top:120px;
-    left:180px;
-    right:180px;
+.table-meld-zone-left,
+.table-meld-zone-right {
+  top: 145px !important;
+  bottom: 125px !important;
 
-    height:150px;
+  width: 340px !important;
+
+  overflow: visible !important;
 }
 
-.table-meld-zone-left{
-    position:absolute;
+.orientation-left .table-player-melds-scroll,
+.orientation-right .table-player-melds-scroll {
+  width: 100% !important;
+  height: 100% !important;
 
-    left:170px;
-    top:210px;
-
-    width:300px;
-    bottom:210px;
+  overflow: visible !important;
 }
 
-.table-meld-zone-right{
-    position:absolute;
+.orientation-left .table-player-melds-list,
+.orientation-right .table-player-melds-list {
+  width: 100% !important;
+  height: 100% !important;
 
-    right:170px;
-    top:210px;
+  display: flex !important;
+  flex-direction: column !important;
+  flex-wrap: nowrap !important;
 
-    width:300px;
-    bottom:210px;
+  align-items: center !important;
+  justify-content: space-evenly !important;
+
+  gap: 2px !important;
+
+  overflow: visible !important;
 }
 
-.table-meld-zone-bottom{
-    position:absolute;
+/*
+ * Yan oyuncuların perleri çok yer kaplamasın.
+ * Kartların tamamı yine görünür kalır.
+ */
+.orientation-left .table-meld,
+.orientation-right .table-meld {
+  transform: scale(0.88);
+  transform-origin: center center;
 
-    left:360px;
-    right:360px;
+  margin-top: -5px;
+  margin-bottom: -5px;
+}
+/* =========================================================
+   YAN OYUNCULAR - 3+ PER GÖRÜNÜRLÜĞÜ
+   ========================================================= */
 
-    bottom:160px;
+.table-meld-zone-left,
+.table-meld-zone-right {
+  top: 150px !important;
+  bottom: 120px !important;
 
-    height:160px;
+  width: 360px !important;
+
+  overflow: visible !important;
+}
+
+.orientation-left,
+.orientation-right,
+.orientation-left .table-player-melds-scroll,
+.orientation-right .table-player-melds-scroll {
+  width: 100% !important;
+  height: 100% !important;
+
+  overflow: visible !important;
+}
+
+.orientation-left .table-player-melds-list,
+.orientation-right .table-player-melds-list {
+  width: 100% !important;
+  height: 100% !important;
+
+  display: grid !important;
+
+  grid-template-columns:
+    repeat(2, max-content);
+
+  grid-auto-rows:
+    max-content;
+
+  align-content: center !important;
+  justify-content: center !important;
+
+  gap: 4px 6px !important;
+
+  overflow: visible !important;
+}
+
+.orientation-left .table-meld,
+.orientation-right .table-meld {
+  transform: scale(0.86);
+
+  transform-origin:
+    center center;
+
+  margin: -4px;
 }

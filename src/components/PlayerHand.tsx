@@ -43,6 +43,7 @@ interface DragState {
   currentClientX: number;
   startIndex: number;
   currentIndex: number;
+  grabOffsetX: number;
   moved: boolean;
 }
 
@@ -98,10 +99,10 @@ function calculateGeometry(
    * masaüstünde yaklaşık 80x112.
    */
   const cardWidth =
-    mobile ? 64 : 80;
+    mobile ? 68 : 84;
 
   const cardHeight =
-    mobile ? 96 : 112;
+    mobile ? 102 : 118;
 
   const horizontalPadding =
     mobile ? 12 : 20;
@@ -121,7 +122,7 @@ function calculateGeometry(
       startX:
         Math.max(
           horizontalPadding,
-          (width - cardWidth) / 2,
+          (width - cardWidth) / 2 - 36,
         ),
       containerHeight:
         cardHeight + 42,
@@ -134,10 +135,10 @@ function calculateGeometry(
    * rank ve sembol bölümü görünür kalır.
    */
   const preferredStep =
-    mobile ? 36 : 46;
+    mobile ? 38 : 48;
 
   const minimumStep =
-    mobile ? 27 : 33;
+    mobile ? 28 : 34;
 
   const fitStep =
     (usableWidth - cardWidth) /
@@ -164,7 +165,7 @@ function calculateGeometry(
     startX:
       Math.max(
         horizontalPadding,
-        (width - totalWidth) / 2,
+        (width - totalWidth) / 2 - 36,
       ),
     containerHeight:
       cardHeight + 48,
@@ -334,6 +335,25 @@ export function PlayerHand({
       event.pointerId,
     );
 
+    const container =
+      containerRef.current;
+
+    if (!container) {
+      return;
+    }
+
+    const rect =
+      container.getBoundingClientRect();
+
+    const localX =
+      event.clientX -
+      rect.left;
+
+    const cardLeft =
+      geometry.startX +
+      index *
+        geometry.step;
+
     dragRef.current = {
       cardId,
       pointerId:
@@ -346,6 +366,8 @@ export function PlayerHand({
         index,
       currentIndex:
         index,
+      grabOffsetX:
+        localX - cardLeft,
       moved:
         false,
     };
@@ -394,8 +416,12 @@ export function PlayerHand({
       event.clientX -
       rect.left;
 
-    const centerX =
+    const draggedLeft =
       localX -
+      drag.grabOffsetX;
+
+    const draggedCenter =
+      draggedLeft +
       geometry.cardWidth / 2;
 
     const targetIndex =
@@ -406,10 +432,11 @@ export function PlayerHand({
               orderedHand.length - 1,
               Math.round(
                 (
-                  centerX -
-                  geometry.startX
+                  draggedCenter -
+                  geometry.startX -
+                  geometry.cardWidth / 2
                 ) /
-                geometry.step,
+                  geometry.step,
               ),
             ),
           )
@@ -545,6 +572,8 @@ export function PlayerHand({
       style={{
         height:
           geometry.containerHeight,
+        transform:
+          'translateY(-18px)',
       }}
     >
       <div className="video-hand-shadow" />
@@ -593,11 +622,20 @@ export function PlayerHand({
             dragging &&
             activeDrag
           ) {
-            x +=
-              activeDrag.currentClientX -
-              activeDrag.startClientX;
+            const container =
+              containerRef.current;
 
-            y -= 30;
+            if (container) {
+              const rect =
+                container.getBoundingClientRect();
+
+              x =
+                activeDrag.currentClientX -
+                rect.left -
+                activeDrag.grabOffsetX;
+            }
+
+            y -= 24;
             rotate = 0;
           }
 
@@ -626,8 +664,8 @@ export function PlayerHand({
                 rotate,
                 scale:
                   dragging
-                    ? 1.08
-                    : 1,
+                    ? 1.11
+                    : 1.07,
               }}
               transition={
                 dragging

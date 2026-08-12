@@ -776,6 +776,9 @@ export function useAnastra(targetScore: number) {
       dealerSeat: (currentState.dealerSeat + 1) % 4,
       teamScores: currentState.teamScores,
       roundNumber: currentState.roundNumber + 1,
+
+      // Skor defteri geçmişini yeni ele taşı.
+      scoreHistory: currentState.scoreHistory,
     });
 
     startHistoryRound(nextState);
