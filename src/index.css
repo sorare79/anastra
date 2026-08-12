@@ -1045,72 +1045,9 @@ button {
    MOBİL UYUM
 -------------------------------------------------- */
 
-@media (max-width: 1023px) {
-  .game-shell {
-    grid-template-columns: 1fr;
-    min-height: auto;
-    padding: 0.65rem;
-  }
 
-  .game-table {
-    min-height: 560px;
-    border-width: 7px;
-    border-radius: 32px;
-  }
 
-  .table-inner {
-    min-height: 535px;
-  }
-}
 
-@media (max-width: 720px) {
-  .game-topbar {
-    min-height: 48px;
-    padding: 0.5rem 0.7rem;
-  }
-
-  .game-table {
-    min-height: 510px;
-    padding: 0.55rem;
-    border-width: 5px;
-    border-radius: 24px;
-  }
-
-  .table-inner {
-    min-height: 490px;
-    gap: 0.55rem;
-  }
-
-  .player-seat-shell {
-    gap: 0.4rem;
-    padding: 0.4rem 0.55rem;
-    border-radius: 14px;
-  }
-
-  .player-avatar {
-    width: 34px;
-    height: 34px;
-  }
-
-  .meld-zone {
-    min-height: 118px;
-    padding: 0.55rem;
-    border-radius: 18px;
-  }
-
-  .player-hand-shell {
-    min-height: 112px;
-    padding-inline: 0.35rem;
-  }
-
-  .hand-card-button {
-    margin-left: -0.85rem;
-  }
-
-  .discard-ribbon {
-    padding-inline: 0.4rem;
-  }
-}
 
 @media (prefers-reduced-motion: reduce) {
   *,
@@ -1216,40 +1153,9 @@ button {
   color: rgba(255, 255, 255, 0.38);
 }
 
-@media (max-width: 1023px) {
-  .game-shell {
-    height: auto;
-    min-height: calc(100vh - 48px);
-    overflow: visible;
-  }
 
-  .game-table {
-    height: auto;
-  }
-}
 
-@media (max-width: 720px) {
-  .hand-reorder-viewport {
-    min-height: 82px;
-    padding-top: 0.9rem;
-  }
 
-  .hand-reorder-slot {
-    width: 31px;
-    height: 72px;
-    flex-basis: 31px;
-  }
-
-  .hand-reorder-group {
-    justify-content: flex-start;
-    padding-inline: 0.8rem;
-  }
-
-  .action-dock {
-    padding-top: 0.35rem;
-    padding-bottom: 0.35rem;
-  }
-}
 
 
 /* --------------------------------------------------
@@ -1354,15 +1260,7 @@ button {
   }
 }
 
-@media (max-width: 700px) {
-  .video-hand-viewport {
-    margin-top: -0.2rem;
-  }
-
-  .video-hand-card {
-    bottom: 14px;
-  }
-}/* --------------------------------------------------
+/* --------------------------------------------------
    ANASTRA PREMIUM MASA V1
 -------------------------------------------------- */
 
@@ -1633,63 +1531,9 @@ button {
   backdrop-filter: blur(10px);
 }
 
-@media (max-width: 1100px) {
-  .anastra-table {
-    height: 610px;
-  }
 
-  .table-meld-zone-left,
-  .table-meld-zone-right {
-    width: 145px;
-  }
 
-  .table-score-panel {
-    display: none;
-  }
-}
 
-@media (max-width: 760px) {
-  .anastra-table-shell {
-    padding: 0.35rem;
-  }
-
-  .anastra-table {
-    min-height: 560px;
-    height: 560px;
-    border-width: 6px;
-    border-radius: 24px;
-  }
-
-  .table-seat-left,
-  .table-seat-right {
-    display: none;
-  }
-
-  .table-meld-zone-left {
-    left: 4px;
-    width: 105px;
-  }
-
-  .table-meld-zone-right {
-    right: 4px;
-    width: 105px;
-  }
-
-  .table-meld-zone-top {
-    left: 15%;
-    right: 15%;
-  }
-
-  .table-meld-zone-bottom {
-    left: 12%;
-    right: 12%;
-  }
-
-  .table-center {
-    gap: 1rem;
-    padding: 0.65rem;
-  }
-}
 /* ==================================================
    SCORE PANEL — MASANIN DIŞINDA SAĞ PANEL
 ================================================== */
@@ -1859,357 +1703,357 @@ button {
 
 
 /* =========================================================
-   ANASTRA - FINAL MOBIL OVERRIDES
-   Desktop düzenine dokunmaz.
+   ANASTRA - TEK VE TEMİZ MOBİL KATMAN
+   Masaüstü kurallarına dokunmaz.
+   Amaç: telefonda gerçek oynanabilirlik.
    ========================================================= */
 
-/* Tablet/telefonda desktop skor paneli için ayrılan 250px alanı kaldır. */
+/* TABLET / TELEFON ORTAK */
 @media (max-width: 1100px) {
-  .anastra-table-shell {
-    width: 100% !important;
-    padding-left: 6px !important;
-    padding-right: 6px !important;
-  }
-
-  .anastra-table {
-    width: 100% !important;
-    max-width: none !important;
-    margin-left: 0 !important;
-    margin-right: 0 !important;
-  }
-
-  .table-score-panel {
-    display: none !important;
-  }
-}
-
-/* Dikey telefonda yatay moda yönlendir. */
-.mobile-rotate-screen {
-  display: none;
-}
-
-@media (max-width: 900px) and (orientation: portrait) {
-  .mobile-rotate-screen {
-    position: fixed;
-    inset: 0;
-    z-index: 999999;
-
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-
-    gap: 14px;
-    padding: 30px;
-
-    text-align: center;
-    color: #fff;
-
-    background:
-      radial-gradient(
-        circle at center,
-        #0d6848,
-        #03130e 70%
-      );
-  }
-
-  .mobile-rotate-icon {
-    font-size: 64px;
-    line-height: 1;
-    color: #f6c453;
-  }
-
-  .mobile-rotate-screen strong {
-    font-size: 24px;
-    color: #f6c453;
-  }
-
-  .mobile-rotate-screen span {
-    font-size: 14px;
-    color: rgba(255, 255, 255, 0.72);
-  }
-}
-
-/* =========================================================
-   TELEFON - YATAY OYUN MODU
-   Masa ana alanı kaplar.
-   El ve aksiyonlar masanın altına overlay olarak oturur.
-   ========================================================= */
-@media (orientation: landscape) and (max-height: 600px) {
   html,
   body,
   #root {
     width: 100%;
-    height: 100%;
-    margin: 0;
-    overflow: hidden !important;
+    max-width: 100%;
   }
 
   body {
-    min-height: 0 !important;
+    overflow-x: hidden;
   }
 
   .anastra-page {
-    position: relative !important;
-
-    width: 100vw !important;
-    height: 100dvh !important;
-    min-height: 0 !important;
-
-    display: flex !important;
-    flex-direction: column !important;
-
-    overflow: hidden !important;
+    width: 100%;
+    min-height: 100dvh;
+    overflow-x: hidden;
+    overflow-y: auto;
   }
 
-  /* -------------------------
-     ÜST BAR
-     ------------------------- */
-
-  .game-topbar {
-    position: relative !important;
-    z-index: 400 !important;
-
-    flex: 0 0 42px !important;
-
-    min-height: 42px !important;
-    height: 42px !important;
-
-    padding: 3px 10px !important;
-    gap: 8px !important;
-  }
-
-  .game-brand {
-    font-size: 18px !important;
-  }
-
-  .score-chip {
-    padding: 4px 8px !important;
-    font-size: 10px !important;
-  }
-
-  /* -------------------------
-     MASA
-     ------------------------- */
-
+  /* Desktop skor panelinin 250px sağ boşluğunu mobilde geri al. */
   .anastra-table-shell {
-    position: relative !important;
-
-    flex: 1 1 auto !important;
-
-    width: 100% !important;
-    min-width: 0 !important;
-    min-height: 0 !important;
-
-    /*
-     * Alt 112px kart/aksiyon overlay'i için görsel nefes alanı.
-     * Masa artık ayrı 190px action satırı yüzünden sıkışmıyor.
-     */
-    padding:
-      4px
-      6px
-      112px !important;
-
-    overflow: hidden !important;
+    width: 100%;
+    min-width: 0;
+    padding-left: 8px;
+    padding-right: 8px;
   }
 
   .anastra-table {
-    width: 100% !important;
-    height: 100% !important;
-
-    min-width: 0 !important;
-    min-height: 0 !important;
-    max-width: none !important;
-
-    margin: 0 !important;
-
-    border-width: 5px !important;
-    border-radius: 20px !important;
-
-    overflow: hidden !important;
+    width: 100%;
+    max-width: none;
+    margin: 0;
   }
 
-  /* -------------------------
-     RAKİPLER
-     ------------------------- */
+  .table-score-panel {
+    display: none;
+  }
+}
+
+/* DİKEY TELEFON */
+@media (max-width: 760px) and (orientation: portrait) {
+  .game-topbar {
+    min-height: 46px;
+    padding: 6px 8px;
+    gap: 6px;
+  }
+
+  .game-brand {
+    font-size: 16px;
+    letter-spacing: 0.08em;
+  }
+
+  .score-chip {
+    padding: 4px 7px;
+    font-size: 9px;
+  }
+
+  .anastra-table-shell {
+    flex: 0 0 auto;
+    padding: 6px;
+  }
+
+  .anastra-table {
+    width: 100%;
+    height: 540px;
+    min-height: 540px;
+    border-width: 6px;
+    border-radius: 24px;
+    overflow: hidden;
+  }
 
   .table-seat-top {
-    top: 2px !important;
+    top: 3px;
+    transform: translateX(-50%) scale(0.78);
+    transform-origin: top center;
   }
 
   .table-seat-left {
-    left: 3px !important;
+    left: 1px;
+    transform: translateY(-50%) scale(0.72);
+    transform-origin: left center;
   }
 
   .table-seat-right {
-    right: 3px !important;
+    right: 1px;
+    transform: translateY(-50%) scale(0.72);
+    transform-origin: right center;
   }
-
-  /* -------------------------
-     MERKEZ DESTE / YER
-     ------------------------- */
-
-  .table-center {
-    top: 48% !important;
-
-    gap: 10px !important;
-    padding: 4px 7px !important;
-
-    transform:
-      translate(-50%, -50%)
-      scale(0.68) !important;
-
-    transform-origin: center center !important;
-  }
-
-  /* -------------------------
-     PER ALANLARI
-     ------------------------- */
 
   .table-meld-zone-top {
-    top: 50px !important;
-    left: 18% !important;
-    right: 18% !important;
-    height: 84px !important;
+    top: 60px;
+    left: 16%;
+    right: 16%;
+    height: 112px;
   }
 
   .table-meld-zone-bottom {
-    left: 18% !important;
-    right: 18% !important;
-    bottom: 12px !important;
-    height: 76px !important;
+    left: 11%;
+    right: 11%;
+    bottom: 5px;
+    height: 122px;
   }
 
   .table-meld-zone-left,
   .table-meld-zone-right {
-    top: 18% !important;
-    bottom: 18% !important;
-    width: 108px !important;
+    top: 18%;
+    bottom: 20%;
+    width: 94px;
   }
 
   .table-meld-zone-left {
-    left: 3px !important;
+    left: 2px;
   }
 
   .table-meld-zone-right {
-    right: 3px !important;
+    right: 2px;
   }
 
-  /* -------------------------
-     EL + AKSİYON OVERLAY
-     ------------------------- */
+  .orientation-left .table-player-melds-list,
+  .orientation-right .table-player-melds-list {
+    justify-content: space-evenly;
+    gap: 2px;
+    padding: 1px;
+  }
+
+  .table-center {
+    top: 49%;
+    gap: 12px;
+    padding: 6px 8px;
+    transform: translate(-50%, -50%) scale(0.68);
+    transform-origin: center;
+  }
+
+  .table-center-label {
+    font-size: 9px;
+  }
+
+  .table-discard-area {
+    min-width: 0;
+    max-width: 52vw;
+  }
 
   .action-dock {
-    position: absolute !important;
-
-    left: 0 !important;
-    right: 0 !important;
-    bottom: 0 !important;
-
-    z-index: 300 !important;
-
-    width: 100% !important;
-    height: 128px !important;
-    min-height: 0 !important;
-
-    padding:
-      0
-      6px
-      3px !important;
-
-    margin: 0 !important;
-
-    overflow: hidden !important;
-
-    background:
-      linear-gradient(
-        to top,
-        rgba(1, 8, 6, 0.99) 0%,
-        rgba(1, 8, 6, 0.93) 58%,
-        rgba(1, 8, 6, 0.16) 100%
-      ) !important;
-
-    box-shadow: none !important;
-    border-top: 0 !important;
-    backdrop-filter: none !important;
+    position: relative;
+    width: 100%;
+    height: auto;
+    min-height: 0;
+    padding: 6px 5px 8px;
+    margin: 0;
+    overflow: visible;
   }
 
   .action-dock > .text-center {
-    margin-top: 0 !important;
-    margin-bottom: 1px !important;
-
-    font-size: 9px !important;
-    line-height: 1.1 !important;
+    margin-block: 2px;
+    font-size: 10px;
+    line-height: 1.2;
   }
 
   .status-message {
-    min-height: 18px !important;
-
-    padding: 1px 5px !important;
-
-    font-size: 9px !important;
-    line-height: 16px !important;
+    padding: 4px 7px;
+    font-size: 10px;
   }
 
   .video-hand-viewport {
-    width: 100% !important;
-    max-width: 100% !important;
-
-    height: 88px !important;
-
-    margin:
-      -2px
-      auto
-      0 !important;
-
-    overflow: hidden !important;
+    width: 100%;
+    max-width: 100%;
+    margin-top: -2px;
+    overflow: hidden;
+    touch-action: none;
   }
 
   .video-hand-hint {
-    display: none !important;
+    font-size: 8px;
   }
 
   .game-button {
-    padding: 4px 9px !important;
-    font-size: 10px !important;
-  }
-
-  .table-score-panel {
-    display: none !important;
-  }
-}
-/* =========================================================
-   MOBİL - MASAÜSTÜ GÖRÜNÜMÜNÜ ORANTILI KÜÇÜLT
-   ========================================================= */
-
-.mobile-scale-stage {
-  width: 100%;
-}
-
-/* Masaüstü aynen kalır */
-@media (min-width: 901px) {
-  .mobile-scale-stage {
-    width: 100%;
-    transform: none;
+    min-height: 38px;
+    padding: 7px 10px;
+    font-size: 11px;
   }
 }
 
-/* Mobilde bütün oyun alanını tek parça küçült */
-@media (max-width: 900px) {
-  html,
-  body,
-  #root {
-    width: 100%;
-    min-height: 100%;
-    margin: 0;
+/* YATAY TELEFON */
+@media (max-width: 1000px) and (orientation: landscape) {
+  .anastra-page {
+    min-height: 100dvh;
+    height: auto;
     overflow-x: hidden;
+    overflow-y: auto;
   }
 
-  .mobile-scale-stage {
-    width: 1280px;
+  .game-topbar {
+    min-height: 42px;
+    padding: 4px 10px;
+  }
 
-    transform: scale(calc(100vw / 1280));
+  .game-brand {
+    font-size: 17px;
+  }
 
-    transform-origin: top left;
+  .score-chip {
+    padding: 3px 7px;
+    font-size: 9px;
+  }
+
+  .anastra-table-shell {
+    flex: 0 0 auto;
+    padding: 5px 6px;
+  }
+
+  .anastra-table {
+    width: 100%;
+    height: max(360px, calc(100dvh - 150px));
+    min-height: 360px;
+    max-height: 520px;
+    border-width: 6px;
+    border-radius: 24px;
+    overflow: hidden;
+  }
+
+  .table-seat-top {
+    top: 2px;
+    transform: translateX(-50%) scale(0.78);
+    transform-origin: top center;
+  }
+
+  .table-seat-left {
+    left: 2px;
+    transform: translateY(-50%) scale(0.74);
+    transform-origin: left center;
+  }
+
+  .table-seat-right {
+    right: 2px;
+    transform: translateY(-50%) scale(0.74);
+    transform-origin: right center;
+  }
+
+  .table-meld-zone-top {
+    top: 54px;
+    left: 20%;
+    right: 20%;
+    height: 94px;
+  }
+
+  .table-meld-zone-bottom {
+    left: 18%;
+    right: 18%;
+    bottom: 4px;
+    height: 92px;
+  }
+
+  .table-meld-zone-left,
+  .table-meld-zone-right {
+    top: 17%;
+    bottom: 18%;
+    width: 118px;
+  }
+
+  .table-meld-zone-left {
+    left: 3px;
+  }
+
+  .table-meld-zone-right {
+    right: 3px;
+  }
+
+  .table-center {
+    top: 49%;
+    gap: 14px;
+    padding: 5px 8px;
+    transform: translate(-50%, -50%) scale(0.72);
+    transform-origin: center;
+  }
+
+  .table-discard-area {
+    min-width: 0;
+    max-width: 48vw;
+  }
+
+  .action-dock {
+    position: relative;
+    width: 100%;
+    height: auto;
+    min-height: 0;
+    padding: 4px 6px 7px;
+    margin: 0;
+    overflow: visible;
+  }
+
+  .action-dock > .text-center {
+    margin-block: 1px;
+    font-size: 9px;
+    line-height: 1.15;
+  }
+
+  .status-message {
+    padding: 3px 6px;
+    font-size: 9px;
+  }
+
+  .video-hand-viewport {
+    width: 100%;
+    max-width: 100%;
+    margin-top: -4px;
+    overflow: hidden;
+    touch-action: none;
+  }
+
+  .video-hand-hint {
+    display: none;
+  }
+
+  .game-button {
+    min-height: 34px;
+    padding: 5px 9px;
+    font-size: 10px;
+  }
+}
+
+/* ÇOK DAR DİKEY TELEFON */
+@media (max-width: 390px) and (orientation: portrait) {
+  .anastra-table {
+    height: 510px;
+    min-height: 510px;
+  }
+
+  .table-seat-left {
+    transform: translateY(-50%) scale(0.66);
+  }
+
+  .table-seat-right {
+    transform: translateY(-50%) scale(0.66);
+  }
+
+  .table-meld-zone-left,
+  .table-meld-zone-right {
+    width: 86px;
+  }
+
+  .table-center {
+    transform: translate(-50%, -50%) scale(0.62);
+  }
+
+  .game-button {
+    padding-inline: 8px;
+    font-size: 10px;
   }
 }
