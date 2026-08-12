@@ -1,57 +1,103 @@
-.anastra-table{
-    position:relative;
+/* =========================================================
+   ANASTRA - MASA
+   Mobil ölçüler 10-mobile.css tarafından yönetilir.
+   ========================================================= */
 
-    width:100%;
-    max-width:1800px;
+.anastra-table {
+  position: relative;
 
-    height:100%;
+  width: 100%;
+  max-width: 1800px;
 
-    border-radius:42px;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
 
-    overflow:visible;
+  box-sizing: border-box;
 
-    border:14px solid #6d4328;
+  border-radius: 42px;
 
-    background:
-        radial-gradient(circle at center,#0d7b55 0%,#0a6848 45%,#07533b 100%);
+  /*
+   * Desktop'ta perlerin masa sınırının dışına taşabilmesi için
+   * visible bırakıyoruz.
+   * Mobilde 10-mobile.css bunu gerektiğinde override edecek.
+   */
+  overflow: visible;
 
-    box-shadow:
-        inset 0 0 60px rgba(0,0,0,.35),
-        0 20px 50px rgba(0,0,0,.45);
+  border: 14px solid #6d4328;
+
+  background:
+    radial-gradient(
+      circle at center,
+      #0d7b55 0%,
+      #0a6848 45%,
+      #07533b 100%
+    );
+
+  box-shadow:
+    inset 0 0 60px rgba(0, 0, 0, 0.35),
+    0 20px 50px rgba(0, 0, 0, 0.45);
 }
-.table-seat{
-    position:absolute;
+
+
+/* =========================================================
+   OYUNCULAR
+   ========================================================= */
+
+.table-seat {
+  position: absolute;
 }
 
-.table-meld-zone{
-    position:absolute;
+
+/* =========================================================
+   PER ALANLARI
+   ========================================================= */
+
+.table-meld-zone {
+  position: absolute;
 }
+
+
+/* =========================================================
+   DESTE / YER
+   ========================================================= */
 
 .table-deck-area,
-.table-discard-area{
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    gap:8px;
+.table-discard-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  gap: 8px;
 }
 
-.deck-stack{
-    background:none;
-    border:none;
-    padding:0;
-    cursor:pointer;
+
+.deck-stack {
+  background: none;
+  border: none;
+
+  padding: 0;
+
+  cursor: pointer;
 }
 
-.table-center-label{
-    color:#fff;
-    font-weight:700;
+
+.table-center-label {
+  color: #ffffff;
+
+  font-weight: 700;
 }
 
-.table-empty-discard{
-    width:90px;
-    height:126px;
 
-    border-radius:12px;
+.table-empty-discard {
+  width: 90px;
+  height: 126px;
 
-    border:2px dashed rgba(255,255,255,.25);
+  box-sizing: border-box;
+
+  border-radius: 12px;
+
+  border:
+    2px dashed
+    rgba(255, 255, 255, 0.25);
 }

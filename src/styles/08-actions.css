@@ -1,37 +1,66 @@
-.action-dock{
-    height:92px;
+/* =========================================================
+   ANASTRA - AKSİYON ALANI
+   Mobil özel davranış 10-mobile.css tarafından yönetilir.
+   ========================================================= */
 
-    display:flex;
-    align-items:center;
-    justify-content:center;
+.action-dock {
+  flex: 0 0 auto;
 
-    gap:12px;
+  width: 100%;
+  min-height: 0;
+  height: auto;
 
-    padding:12px 20px;
+  display: flex;
+  flex-direction: column;
 
-    background:#081712;
+  align-items: stretch;
+  justify-content: center;
 
-    border-top:1px solid rgba(255,255,255,.08);
+  gap: 8px;
+
+  padding: 8px 12px;
+
+  box-sizing: border-box;
+
+  background: #081712;
+
+  border-top:
+    1px solid
+    rgba(255, 255, 255, 0.08);
 }
 
-.game-button{
-    height:46px;
 
-    padding:0 18px;
+/* =========================================================
+   BUTONLAR
+   ========================================================= */
 
-    border:none;
+.game-button {
+  min-height: 40px;
+  height: auto;
 
-    border-radius:10px;
+  padding:
+    8px
+    16px;
 
-    background:#1d7b57;
+  border: none;
 
-    color:#fff;
+  border-radius: 10px;
 
-    font-weight:600;
+  background: #1d7b57;
 
-    cursor:pointer;
+  color: #ffffff;
+
+  font-weight: 600;
+
+  cursor: pointer;
 }
 
-.game-button:hover{
-    background:#249167;
+
+.game-button:hover {
+  filter: brightness(1.08);
+}
+
+
+.game-button:disabled {
+  cursor: not-allowed;
 }
