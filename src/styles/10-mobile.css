@@ -113,7 +113,8 @@
 
 @media
   (orientation: landscape)
-  and (max-height: 600px) {
+  and (max-width: 1200px)
+  and (max-height: 900px) {
 
   html,
   body,
