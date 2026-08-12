@@ -98,3 +98,41 @@
       6px;
   }
 }
+/* =========================================================
+   MOBİL ANA YERLEŞİM
+   ========================================================= */
+
+@media (max-width: 768px) {
+
+  .anastra-page {
+    width: 100%;
+    min-width: 0;
+    min-height: 100dvh;
+    height: auto;
+    overflow-x: hidden;
+  }
+
+  .anastra-table-shell {
+    width: 100%;
+    min-width: 0;
+
+    flex: none;
+
+    display: block;
+
+    padding: 6px;
+
+    box-sizing: border-box;
+  }
+
+  .anastra-table {
+    width: 100% !important;
+    max-width: none !important;
+
+    min-width: 0 !important;
+
+    margin: 0 !important;
+
+    box-sizing: border-box;
+  }
+}
