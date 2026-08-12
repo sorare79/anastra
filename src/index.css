@@ -1879,3 +1879,166 @@ button {
     display: none !important;
   }
 }
+/* ==================================================
+   MOBİL - TEK EKRANA SIĞDIRMA
+   ================================================== */
+
+@media (max-width: 760px) {
+
+  html,
+  body,
+  #root {
+    width: 100%;
+    max-width: 100%;
+    min-height: 100%;
+    overflow-x: hidden;
+  }
+
+  .anastra-page {
+    width: 100%;
+    min-height: 100dvh;
+    height: 100dvh;
+
+    overflow-x: hidden;
+    overflow-y: hidden;
+  }
+
+  .game-topbar {
+    flex: 0 0 auto;
+
+    min-height: 46px;
+    padding: 6px 10px;
+  }
+
+  .game-brand {
+    font-size: 18px;
+  }
+
+  .score-chip {
+    padding: 5px 9px;
+    font-size: 11px;
+  }
+
+  .anastra-table-shell {
+    flex: 1 1 auto;
+
+    width: 100%;
+
+    min-height: 0;
+
+    padding:
+      4px 6px !important;
+
+    overflow: hidden;
+  }
+
+  .anastra-table {
+    width: 100% !important;
+
+    height: 100% !important;
+    min-height: 0 !important;
+
+    border-width: 5px !important;
+    border-radius: 20px !important;
+
+    overflow: hidden !important;
+  }
+
+  .table-seat-top {
+    top: 4px;
+  }
+
+  .table-center {
+    gap: 10px !important;
+
+    padding:
+      7px 9px !important;
+
+    transform:
+      translate(-50%, -48%)
+      scale(0.82);
+
+    transform-origin: center;
+  }
+
+  .table-meld-zone-top {
+    top: 68px !important;
+
+    left: 12% !important;
+    right: 12% !important;
+
+    height: 115px !important;
+  }
+
+  .table-meld-zone-bottom {
+    left: 10% !important;
+    right: 10% !important;
+
+    bottom: 4px !important;
+
+    height: 115px !important;
+  }
+
+  .table-meld-zone-left {
+    left: 2px !important;
+
+    top: 18% !important;
+    bottom: 18% !important;
+
+    width: 90px !important;
+  }
+
+  .table-meld-zone-right {
+    right: 2px !important;
+
+    top: 18% !important;
+    bottom: 18% !important;
+
+    width: 90px !important;
+  }
+
+  .table-meld {
+    transform-origin: center center;
+  }
+
+  .orientation-left .table-meld,
+  .orientation-right .table-meld {
+    transform: scale(0.72);
+  }
+
+  .action-dock {
+    flex: 0 0 auto;
+
+    padding:
+      4px 6px 6px !important;
+
+    margin: 0 !important;
+
+    overflow: hidden;
+  }
+
+  .action-dock > .text-center {
+    margin-top: 0 !important;
+    margin-bottom: 2px !important;
+
+    font-size: 11px !important;
+  }
+
+  .video-hand-viewport {
+    max-width: 100%;
+
+    margin-top: -8px !important;
+
+    transform:
+      translateY(-6px);
+
+    overflow: hidden;
+  }
+
+  .game-button {
+    padding:
+      7px 10px;
+
+    font-size: 11px !important;
+  }
+}
