@@ -1,6 +1,5 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
-@import "./styles/index.css";
 @source './';
 
 :root {
@@ -2177,5 +2176,40 @@ button {
 
   .table-score-panel {
     display: none !important;
+  }
+}
+/* =========================================================
+   MOBİL - MASAÜSTÜ GÖRÜNÜMÜNÜ ORANTILI KÜÇÜLT
+   ========================================================= */
+
+.mobile-scale-stage {
+  width: 100%;
+}
+
+/* Masaüstü aynen kalır */
+@media (min-width: 901px) {
+  .mobile-scale-stage {
+    width: 100%;
+    transform: none;
+  }
+}
+
+/* Mobilde bütün oyun alanını tek parça küçült */
+@media (max-width: 900px) {
+  html,
+  body,
+  #root {
+    width: 100%;
+    min-height: 100%;
+    margin: 0;
+    overflow-x: hidden;
+  }
+
+  .mobile-scale-stage {
+    width: 1280px;
+
+    transform: scale(calc(100vw / 1280));
+
+    transform-origin: top left;
   }
 }
