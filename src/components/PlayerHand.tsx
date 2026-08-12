@@ -89,9 +89,18 @@ function moveCard(
 function calculateGeometry(
   width: number,
   cardCount: number,
+  compactLandscape: boolean,
 ): HandGeometry {
   const mobile =
     width < 700;
+
+  /*
+   * Yatay telefonda ekran geniş olduğu için yalnızca
+   * width < 700 kontrolü telefonu masaüstü sanıyordu.
+   *
+   * compactLandscape=true olduğunda kart geometrisini
+   * görsel ölçekle birebir uyumlu olacak şekilde küçültürüz.
+   */
 
   /*
    * CardView size="lg" ölçüleri:
@@ -99,13 +108,25 @@ function calculateGeometry(
    * masaüstünde yaklaşık 80x112.
    */
   const cardWidth =
-    mobile ? 68 : 84;
+    compactLandscape
+      ? 60
+      : mobile
+        ? 68
+        : 84;
 
   const cardHeight =
-    mobile ? 102 : 118;
+    compactLandscape
+      ? 84
+      : mobile
+        ? 102
+        : 118;
 
   const horizontalPadding =
-    mobile ? 12 : 20;
+    compactLandscape
+      ? 8
+      : mobile
+        ? 12
+        : 20;
 
   const usableWidth =
     Math.max(
@@ -122,10 +143,12 @@ function calculateGeometry(
       startX:
         Math.max(
           horizontalPadding,
-          (width - cardWidth) / 2 - 36,
+          (width - cardWidth) / 2 -
+            (compactLandscape ? 0 : 36),
         ),
       containerHeight:
-        cardHeight + 42,
+        cardHeight +
+        (compactLandscape ? 12 : 42),
     };
   }
 
@@ -135,10 +158,18 @@ function calculateGeometry(
    * rank ve sembol bölümü görünür kalır.
    */
   const preferredStep =
-    mobile ? 38 : 48;
+    compactLandscape
+      ? 44
+      : mobile
+        ? 38
+        : 48;
 
   const minimumStep =
-    mobile ? 28 : 34;
+    compactLandscape
+      ? 30
+      : mobile
+        ? 28
+        : 34;
 
   const fitStep =
     (usableWidth - cardWidth) /
@@ -165,10 +196,12 @@ function calculateGeometry(
     startX:
       Math.max(
         horizontalPadding,
-        (width - totalWidth) / 2 - 36,
+        (width - totalWidth) / 2 -
+          (compactLandscape ? 0 : 36),
       ),
     containerHeight:
-      cardHeight + 48,
+      cardHeight +
+      (compactLandscape ? 14 : 48),
   };
 }
 
@@ -253,6 +286,11 @@ export function PlayerHand({
   ] = useState(0);
 
   const [
+    compactLandscape,
+    setCompactLandscape,
+  ] = useState(false);
+
+  const [
     dragVersion,
     setDragVersion,
   ] = useState(0);
@@ -308,16 +346,59 @@ export function PlayerHand({
     };
   }, []);
 
+  /*
+   * Yatay telefon algısı.
+   *
+   * Telefon yatay çevrildiğinde genişlik masaüstü gibi büyük
+   * olabilir. Bu nedenle yalnızca container genişliğine değil,
+   * viewport yüksekliği + yön bilgisine de bakıyoruz.
+   */
+  useEffect(() => {
+    const updateViewportMode = () => {
+      setCompactLandscape(
+        window.innerWidth >
+          window.innerHeight &&
+          window.innerHeight <= 600,
+      );
+    };
+
+    updateViewportMode();
+
+    window.addEventListener(
+      'resize',
+      updateViewportMode,
+    );
+
+    window.addEventListener(
+      'orientationchange',
+      updateViewportMode,
+    );
+
+    return () => {
+      window.removeEventListener(
+        'resize',
+        updateViewportMode,
+      );
+
+      window.removeEventListener(
+        'orientationchange',
+        updateViewportMode,
+      );
+    };
+  }, []);
+
   const geometry =
     useMemo(
       () =>
         calculateGeometry(
           containerWidth,
           orderedHand.length,
+          compactLandscape,
         ),
       [
         containerWidth,
         orderedHand.length,
+        compactLandscape,
       ],
     );
 
@@ -573,7 +654,9 @@ export function PlayerHand({
         height:
           geometry.containerHeight,
         transform:
-          'translateY(-18px)',
+          compactLandscape
+            ? 'translateY(-4px)'
+            : 'translateY(-18px)',
       }}
     >
       <div className="video-hand-shadow" />
@@ -613,7 +696,11 @@ export function PlayerHand({
               geometry.step;
 
           let y =
-            fan.y;
+            compactLandscape
+              ? Math.round(
+                  fan.y * 0.45,
+                )
+              : fan.y;
 
           let rotate =
             fan.rotate;
@@ -635,7 +722,10 @@ export function PlayerHand({
                 activeDrag.grabOffsetX;
             }
 
-            y -= 24;
+            y -=
+              compactLandscape
+                ? 10
+                : 24;
             rotate = 0;
           }
 
@@ -643,7 +733,10 @@ export function PlayerHand({
             selected &&
             !dragging
           ) {
-            y -= 18;
+            y -=
+              compactLandscape
+                ? 8
+                : 18;
           }
 
           return (
@@ -663,9 +756,13 @@ export function PlayerHand({
                 y,
                 rotate,
                 scale:
-                  dragging
-                    ? 1.11
-                    : 1.07,
+                  compactLandscape
+                    ? dragging
+                      ? 0.79
+                      : 0.72
+                    : dragging
+                      ? 1.11
+                      : 1.07,
               }}
               transition={
                 dragging
