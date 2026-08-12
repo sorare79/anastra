@@ -2042,3 +2042,292 @@ button {
     font-size: 11px !important;
   }
 }
+/* ==================================================
+   MOBİL - YATAY OYUN MODU
+   ================================================== */
+
+.mobile-rotate-screen {
+  display: none;
+}
+
+
+/* DİKEY TELEFON */
+
+@media
+  (max-width: 900px)
+  and (orientation: portrait) {
+
+  .mobile-rotate-screen {
+    position: fixed;
+    inset: 0;
+
+    z-index: 999999;
+
+    display: flex;
+    flex-direction: column;
+
+    align-items: center;
+    justify-content: center;
+
+    gap: 14px;
+
+    padding: 30px;
+
+    text-align: center;
+
+    background:
+      radial-gradient(
+        circle at center,
+        #0d6848,
+        #03130e 70%
+      );
+
+    color: white;
+  }
+
+  .mobile-rotate-icon {
+    font-size: 64px;
+
+    color: #f6c453;
+
+    line-height: 1;
+  }
+
+  .mobile-rotate-screen strong {
+    font-size: 24px;
+
+    color: #f6c453;
+  }
+
+  .mobile-rotate-screen span {
+    font-size: 14px;
+
+    color:
+      rgba(
+        255,
+        255,
+        255,
+        0.7
+      );
+  }
+}
+
+
+/* ==================================================
+   YATAY TELEFON
+   ================================================== */
+
+@media
+  (max-height: 600px)
+  and (orientation: landscape) {
+
+  html,
+  body,
+  #root {
+    width: 100%;
+    height: 100%;
+
+    margin: 0;
+
+    overflow: hidden;
+  }
+
+  .anastra-page {
+    width: 100vw;
+    height: 100dvh;
+
+    min-height: 0;
+
+    overflow: hidden;
+  }
+
+
+  /* -------------------------
+     ÜST BAR
+  ------------------------- */
+
+  .game-topbar {
+    flex: 0 0 42px;
+
+    min-height: 42px;
+
+    padding:
+      4px
+      10px;
+  }
+
+  .game-brand {
+    font-size: 18px !important;
+  }
+
+  .score-chip {
+    padding:
+      4px
+      8px;
+
+    font-size: 10px;
+  }
+
+
+  /* -------------------------
+     MASA
+  ------------------------- */
+
+  .anastra-table-shell {
+    flex: 1 1 auto;
+
+    min-height: 0;
+
+    width: 100%;
+
+    padding:
+      4px
+      6px !important;
+  }
+
+  .anastra-table {
+    width: 100% !important;
+
+    height: 100% !important;
+
+    min-height: 0 !important;
+
+    max-width: none !important;
+
+    border-width:
+      5px !important;
+
+    border-radius:
+      22px !important;
+
+    overflow:
+      hidden !important;
+  }
+
+
+  /* -------------------------
+     RAKİPLER
+  ------------------------- */
+
+  .table-seat-top {
+    top: 2px;
+  }
+
+  .table-seat-left {
+    left: 3px;
+  }
+
+  .table-seat-right {
+    right: 3px;
+  }
+
+
+  /* -------------------------
+     MERKEZ
+  ------------------------- */
+
+  .table-center {
+    gap: 12px !important;
+
+    padding:
+      5px
+      8px !important;
+
+    transform:
+      translate(
+        -50%,
+        -50%
+      )
+      scale(0.72);
+
+    transform-origin:
+      center center;
+  }
+
+
+  /* -------------------------
+     PERLER
+  ------------------------- */
+
+  .table-meld-zone-top {
+    top:
+      55px !important;
+
+    height:
+      105px !important;
+  }
+
+  .table-meld-zone-bottom {
+    bottom:
+      3px !important;
+
+    height:
+      100px !important;
+  }
+
+  .table-meld-zone-left,
+  .table-meld-zone-right {
+    top:
+      18% !important;
+
+    bottom:
+      16% !important;
+
+    width:
+      120px !important;
+  }
+
+
+  /* -------------------------
+     ALT AKSİYON + EL
+  ------------------------- */
+
+  .action-dock {
+    flex: 0 0 auto;
+
+    padding:
+      2px
+      6px
+      3px !important;
+
+    margin: 0 !important;
+  }
+
+  .status-message {
+    padding:
+      3px
+      6px;
+
+    font-size:
+      10px !important;
+  }
+
+  .video-hand-viewport {
+    margin-top:
+      -10px !important;
+
+    overflow:
+      hidden;
+  }
+
+  .video-hand-hint {
+    display: none;
+  }
+
+  .game-button {
+    padding:
+      5px
+      9px;
+
+    font-size:
+      10px !important;
+  }
+
+
+  /* Mobilde sağ skor paneli yok */
+
+  .table-score-panel {
+    display:
+      none !important;
+  }
+}

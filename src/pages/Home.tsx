@@ -326,6 +326,19 @@ function ExistingGameHome() {
 
   return (
     <div className="anastra-page text-white flex flex-col">
+      <div className="mobile-rotate-screen">
+  <div className="mobile-rotate-icon">
+    ↻
+  </div>
+
+  <strong>
+    Telefonu yatay çevir
+  </strong>
+
+  <span>
+    ANASTRA mobilde yatay oynanır.
+  </span>
+</div>
       <div className="game-topbar">
         <h1 className="game-brand text-lg md:text-xl font-black">
           ANASTRA
