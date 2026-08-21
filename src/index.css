@@ -2057,3 +2057,170 @@ button {
     font-size: 10px;
   }
 }
+
+
+/* =========================================================
+   TAM EKRAN / EKRANA SIĞDIR DÜĞMESİ
+   ========================================================= */
+
+.fullscreen-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  min-width: 36px;
+  height: 36px;
+  padding: 0 10px;
+
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.12),
+      rgba(255, 255, 255, 0.05)
+    );
+
+  color: #fff;
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1;
+
+  cursor: pointer;
+
+  box-shadow:
+    inset 0 1px rgba(255, 255, 255, 0.08),
+    0 5px 14px rgba(0, 0, 0, 0.2);
+}
+
+.fullscreen-button:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+
+/* =========================================================
+   MOBİL EL - 13+ KART EKRANA SIĞSIN
+   PlayerHand.tsx gerçek kart geometrisini küçültür.
+   Burada viewport'un kartları kesmesini engelliyoruz.
+   ========================================================= */
+
+@media (max-width: 760px) and (orientation: portrait) {
+  .fullscreen-button {
+    min-width: 31px;
+    height: 31px;
+    padding: 0 7px;
+    font-size: 15px;
+  }
+
+  .video-hand-viewport {
+    min-height: 100px;
+    overflow: hidden;
+  }
+
+  .video-hand-card {
+    bottom: 8px;
+  }
+}
+
+@media (max-width: 1000px) and (orientation: landscape) {
+  .fullscreen-button {
+    min-width: 30px;
+    height: 30px;
+    padding: 0 7px;
+    font-size: 14px;
+  }
+
+  .video-hand-viewport {
+    min-height: 94px;
+  }
+
+  .video-hand-card {
+    bottom: 7px;
+  }
+}
+
+
+/* =========================================================
+   FIT MODE
+   Tam ekran desteklenmese bile düğmeye basıldığında
+   oyunun yatay telefonda tek viewport'a sığmasını hedefler.
+   ========================================================= */
+
+@media (max-width: 1000px) and (orientation: landscape) {
+  .mobile-scale-stage.is-fit-mode {
+    width: 100%;
+    height: 100dvh;
+    overflow: hidden;
+  }
+
+  .mobile-scale-stage.is-fit-mode .anastra-page {
+    width: 100%;
+    height: 100dvh;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .mobile-scale-stage.is-fit-mode .game-topbar {
+    flex: 0 0 38px;
+    min-height: 38px;
+    height: 38px;
+    padding: 3px 8px;
+  }
+
+  .mobile-scale-stage.is-fit-mode .anastra-table-shell {
+    flex: 1 1 auto;
+    min-height: 0;
+    padding: 3px 5px;
+  }
+
+  .mobile-scale-stage.is-fit-mode .anastra-table {
+    height: 100%;
+    min-height: 300px;
+    max-height: none;
+  }
+
+  .mobile-scale-stage.is-fit-mode .action-dock {
+    flex: 0 0 118px;
+    height: 118px;
+    min-height: 118px;
+    max-height: 118px;
+
+    padding: 2px 5px 4px;
+
+    overflow: hidden;
+  }
+
+  .mobile-scale-stage.is-fit-mode .action-dock > .text-center {
+    margin: 0;
+    font-size: 8px;
+    line-height: 1.05;
+  }
+
+  .mobile-scale-stage.is-fit-mode .status-message {
+    padding: 2px 5px;
+    font-size: 8px;
+  }
+
+  .mobile-scale-stage.is-fit-mode .video-hand-viewport {
+    height: 78px !important;
+    min-height: 78px !important;
+    margin-top: -3px;
+  }
+
+  .mobile-scale-stage.is-fit-mode .video-hand-card {
+    bottom: 2px;
+  }
+
+  .mobile-scale-stage.is-fit-mode .game-button {
+    min-height: 28px;
+    padding: 3px 7px;
+    font-size: 9px;
+  }
+
+  .mobile-scale-stage.is-fit-mode .table-center {
+    transform:
+      translate(-50%, -50%)
+      scale(0.66);
+  }
+}

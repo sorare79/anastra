@@ -54,6 +54,8 @@ function ExistingGameHome() {
   const [layoffMode, setLayoffMode] = useState(false);
   const [previewMeldId, setPreviewMeldId] = useState<string | null>(null);
 
+  const [fitMode, setFitMode] = useState(false);
+
   const me = state.players[0];
   const isMyTurn = state.currentSeat === 0;
 
@@ -270,6 +272,32 @@ function ExistingGameHome() {
     setPreviewMeldId(meldId);
   };
 
+  const toggleFullscreen = async () => {
+    const nextFitMode = !fitMode;
+    setFitMode(nextFitMode);
+
+    try {
+      if (
+        nextFitMode &&
+        !document.fullscreenElement &&
+        document.documentElement.requestFullscreen
+      ) {
+        await document.documentElement.requestFullscreen();
+      } else if (
+        !nextFitMode &&
+        document.fullscreenElement &&
+        document.exitFullscreen
+      ) {
+        await document.exitFullscreen();
+      }
+    } catch {
+      /*
+       * Bazı mobil tarayıcılar Fullscreen API'yi desteklemez.
+       * Bu durumda fitMode yine çalışır ve oyun ekrana sığdırılır.
+       */
+    }
+  };
+
   const hint = () => {
     const result = suggestMelds(me.hand);
     const melds = result.melds;
@@ -325,7 +353,7 @@ function ExistingGameHome() {
     state.phase === 'gameOver';
 
   return (
-    <div className="mobile-scale-stage">
+    <div className={fitMode ? "mobile-scale-stage is-fit-mode" : "mobile-scale-stage"}>
       <div className="anastra-page text-white flex flex-col">
         <div className="game-topbar">
         <h1 className="game-brand text-lg md:text-xl font-black">
@@ -344,6 +372,16 @@ function ExistingGameHome() {
           <span className="score-chip text-white/60">
             Baraj {state.openThreshold}
           </span>
+
+          <button
+            type="button"
+            onClick={toggleFullscreen}
+            className="fullscreen-button"
+            title={fitMode ? 'Tam ekrandan çık' : 'Tam ekran / ekrana sığdır'}
+            aria-label={fitMode ? 'Tam ekrandan çık' : 'Tam ekran / ekrana sığdır'}
+          >
+            {fitMode ? '×' : '⛶'}
+          </button>
         </div>
       </div>
 
