@@ -2224,3 +2224,396 @@ button {
       scale(0.66);
   }
 }
+
+
+/* =========================================================
+   SAĞ / SOL OYUNCU PERLERİ - KAYDIRMALI TEK SÜTUN
+   4+ per açıldığında diğer perler aşağı-yukarı kaydırılır.
+   Grid / iki sütun / ekstra scale kullanılmaz.
+   ========================================================= */
+
+.table-meld-zone-left,
+.table-meld-zone-right {
+  overflow: hidden !important;
+}
+
+.orientation-left,
+.orientation-right {
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+}
+
+.orientation-left .table-player-melds-scroll,
+.orientation-right .table-player-melds-scroll {
+  width: 100% !important;
+  height: 100% !important;
+
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+
+  scrollbar-width: thin;
+  scrollbar-color:
+    rgba(246, 196, 83, 0.72)
+    rgba(255, 255, 255, 0.06);
+}
+
+.orientation-left .table-player-melds-list,
+.orientation-right .table-player-melds-list {
+  width: 100% !important;
+  height: auto !important;
+  min-width: 0 !important;
+  min-height: 100% !important;
+
+  display: flex !important;
+  flex-direction: column !important;
+
+  align-items: center !important;
+  justify-content: flex-start !important;
+
+  gap: 8px !important;
+
+  padding:
+    8px
+    5px
+    16px !important;
+
+  overflow: visible !important;
+}
+
+/* Mevcut sol/sağ 90° dönüş sistemi korunur. */
+.orientation-left .table-meld,
+.orientation-right .table-meld {
+  flex: 0 0 auto !important;
+  margin: 0 !important;
+}
+
+.orientation-left
+.table-player-melds-scroll::-webkit-scrollbar,
+.orientation-right
+.table-player-melds-scroll::-webkit-scrollbar {
+  width: 7px;
+}
+
+.orientation-left
+.table-player-melds-scroll::-webkit-scrollbar-track,
+.orientation-right
+.table-player-melds-scroll::-webkit-scrollbar-track {
+  background:
+    rgba(255, 255, 255, 0.05);
+
+  border-radius: 999px;
+}
+
+.orientation-left
+.table-player-melds-scroll::-webkit-scrollbar-thumb,
+.orientation-right
+.table-player-melds-scroll::-webkit-scrollbar-thumb {
+  background:
+    rgba(246, 196, 83, 0.62);
+
+  border-radius: 999px;
+}
+
+.orientation-left
+.table-player-melds-scroll::-webkit-scrollbar-thumb:hover,
+.orientation-right
+.table-player-melds-scroll::-webkit-scrollbar-thumb:hover {
+  background:
+    rgba(246, 196, 83, 0.88);
+}
+
+@media (max-width: 1000px) {
+  .orientation-left .table-player-melds-list,
+  .orientation-right .table-player-melds-list {
+    gap: 5px !important;
+
+    padding:
+      5px
+      3px
+      12px !important;
+  }
+
+  .orientation-left
+  .table-player-melds-scroll::-webkit-scrollbar,
+  .orientation-right
+  .table-player-melds-scroll::-webkit-scrollbar {
+    width: 5px;
+  }
+}
+
+
+/* =========================================================
+   PER BÜYÜTME PENCERESİ - EN ÖNDE + DİKEY KAYDIRMA
+   ========================================================= */
+
+/*
+ * Overlay artık Home.tsx içinde .table-center dışına taşındığı için
+ * transform stacking-context problemi kalmaz.
+ */
+.meld-preview-overlay {
+  position: fixed !important;
+  inset: 0 !important;
+
+  z-index: 999999 !important;
+
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  padding: 18px !important;
+
+  overflow: hidden !important;
+
+  background: rgba(0, 0, 0, 0.68) !important;
+  backdrop-filter: blur(5px) !important;
+}
+
+/*
+ * Çok kartlı perlerde pencerenin kendisi ekran dışına büyümez.
+ * İçerik kendi içinde yukarı/aşağı kayar.
+ */
+.meld-preview-window {
+  position: relative !important;
+
+  width: min(920px, 94vw) !important;
+  max-width: 94vw !important;
+
+  max-height: 88dvh !important;
+
+  padding:
+    54px
+    26px
+    24px !important;
+
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+
+  border: 1px solid rgba(246, 196, 83, 0.62) !important;
+  border-radius: 22px !important;
+
+  background:
+    linear-gradient(
+      180deg,
+      rgba(7, 35, 25, 0.99),
+      rgba(2, 18, 13, 0.99)
+    ) !important;
+
+  box-shadow:
+    0 36px 90px rgba(0, 0, 0, 0.72),
+    0 0 34px rgba(246, 196, 83, 0.14) !important;
+
+  scrollbar-width: thin;
+  scrollbar-color:
+    rgba(246, 196, 83, 0.75)
+    rgba(255, 255, 255, 0.06);
+}
+
+/*
+ * Kapatma düğmesi pencere kaydırılsa bile hep görünür.
+ */
+.meld-preview-close {
+  position: sticky !important;
+  top: 0 !important;
+
+  float: right;
+
+  z-index: 1000001 !important;
+
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  width: 38px !important;
+  height: 38px !important;
+
+  margin:
+    -42px
+    -12px
+    8px
+    12px !important;
+
+  border: 1px solid rgba(255, 255, 255, 0.16) !important;
+  border-radius: 999px !important;
+
+  background: rgba(2, 10, 7, 0.92) !important;
+  color: #fff !important;
+
+  font-size: 20px !important;
+  font-weight: 900 !important;
+  line-height: 1 !important;
+
+  cursor: pointer !important;
+
+  box-shadow:
+    0 8px 20px rgba(0, 0, 0, 0.45),
+    inset 0 1px rgba(255, 255, 255, 0.08) !important;
+}
+
+.meld-preview-cards {
+  display: flex !important;
+  align-items: flex-start !important;
+  justify-content: center !important;
+
+  gap: 12px !important;
+
+  flex-wrap: wrap !important;
+
+  width: 100% !important;
+  min-width: 0 !important;
+}
+
+/* Chrome / Edge / Android scrollbar */
+.meld-preview-window::-webkit-scrollbar {
+  width: 8px;
+}
+
+.meld-preview-window::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 999px;
+}
+
+.meld-preview-window::-webkit-scrollbar-thumb {
+  background: rgba(246, 196, 83, 0.68);
+  border-radius: 999px;
+}
+
+.meld-preview-window::-webkit-scrollbar-thumb:hover {
+  background: rgba(246, 196, 83, 0.9);
+}
+
+/* Mobilde pencere ekranı daha verimli kullanır. */
+@media (max-width: 760px) {
+  .meld-preview-overlay {
+    padding: 8px !important;
+  }
+
+  .meld-preview-window {
+    width: 96vw !important;
+    max-width: 96vw !important;
+    max-height: 90dvh !important;
+
+    padding:
+      48px
+      12px
+      16px !important;
+
+    border-radius: 18px !important;
+  }
+
+  .meld-preview-close {
+    width: 34px !important;
+    height: 34px !important;
+
+    margin:
+      -38px
+      -4px
+      6px
+      8px !important;
+
+    font-size: 18px !important;
+  }
+
+  .meld-preview-cards {
+    gap: 7px !important;
+  }
+}
+
+
+/* =========================================================
+   EL SIRALAMA DÜĞMESİ
+   A-K-Q-J-10-9-8-7-6-5-4-3-2
+   ========================================================= */
+
+.hand-sort-button {
+  position: absolute;
+  top: 2px;
+  left: 50%;
+
+  z-index: 2200;
+
+  transform: translateX(-50%);
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  min-width: 72px;
+  height: 28px;
+
+  padding: 0 12px;
+
+  border: 1px solid rgba(246, 196, 83, 0.5);
+  border-radius: 999px;
+
+  background:
+    linear-gradient(
+      180deg,
+      rgba(246, 196, 83, 0.22),
+      rgba(246, 196, 83, 0.10)
+    );
+
+  color: #ffe29a;
+
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+
+  cursor: pointer;
+
+  box-shadow:
+    0 6px 14px rgba(0, 0, 0, 0.28),
+    inset 0 1px rgba(255, 255, 255, 0.08);
+
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.hand-sort-button:hover {
+  background:
+    linear-gradient(
+      180deg,
+      rgba(246, 196, 83, 0.32),
+      rgba(246, 196, 83, 0.16)
+    );
+}
+
+.hand-sort-button:active {
+  transform:
+    translateX(-50%)
+    scale(0.96);
+}
+
+/* Mobilde eli kapatmayacak kadar küçük tutulur. */
+@media (max-width: 760px) {
+  .hand-sort-button {
+    top: 0;
+
+    min-width: 60px;
+    height: 24px;
+
+    padding: 0 9px;
+
+    font-size: 9px;
+  }
+}
+
+@media (max-width: 1000px) and (orientation: landscape) {
+  .hand-sort-button {
+    top: 0;
+
+    min-width: 58px;
+    height: 23px;
+
+    padding: 0 8px;
+
+    font-size: 9px;
+  }
+}

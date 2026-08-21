@@ -658,6 +658,64 @@ export function PlayerHand({
   const cardSize =
     compact ? 'sm' : 'lg';
 
+  /*
+   * Eli büyükten küçüğe sıralar:
+   * A-K-Q-J-10-9-8-7-6-5-4-3-2
+   *
+   * Aynı değerdeki kartların kendi aralarındaki mevcut
+   * sırası korunur. Sıralama yalnızca görsel el sırasıdır.
+   */
+  const sortDescending = () => {
+    const targetOrder =
+      [...orderedHand].sort(
+        (first, second) =>
+          second.rankValue -
+          first.rankValue,
+      );
+
+    let working =
+      [...orderedHand];
+
+    targetOrder.forEach(
+      (targetCard, targetIndex) => {
+        const currentIndex =
+          working.findIndex(
+            (card) =>
+              card.id ===
+              targetCard.id,
+          );
+
+        if (
+          currentIndex < 0 ||
+          currentIndex === targetIndex
+        ) {
+          return;
+        }
+
+        working =
+          moveCard(
+            working,
+            currentIndex,
+            targetIndex,
+          );
+
+        /*
+         * useAnastra içindeki reorderHand stateRef'i
+         * her çağrıda güncellediği için peş peşe taşıma
+         * işlemleri güvenle uygulanabilir.
+         */
+        onReorder(
+          currentIndex,
+          targetIndex,
+        );
+      },
+    );
+
+    setOrderedHand(
+      working,
+    );
+  };
+
   const activeDrag =
     dragRef.current;
 
@@ -675,6 +733,19 @@ export function PlayerHand({
       }}
     >
       <div className="video-hand-shadow" />
+
+      <button
+        type="button"
+        className="hand-sort-button"
+        onClick={sortDescending}
+        onPointerDown={(event) => {
+          event.stopPropagation();
+        }}
+        title="Kartları A'dan 2'ye büyükten küçüğe sırala"
+        aria-label="Kartları büyükten küçüğe sırala"
+      >
+        Sırala
+      </button>
 
       {orderedHand.map(
         (

@@ -471,50 +471,7 @@ function ExistingGameHome() {
                 Deste ({state.deck.length})
               </span>
             </div>
-            {previewMeldId && (() => {
-  const meld = state.melds.find(
-    (m) => m.id === previewMeldId,
-  );
 
-  if (!meld) return null;
-
-  return (
-    <div
-      className="meld-preview-overlay"
-      onClick={() =>
-        setPreviewMeldId(null)
-      }
-    >
-      <div
-        className="meld-preview-window"
-        onClick={(e) =>
-          e.stopPropagation()
-        }
-      >
-        <button
-          type="button"
-          className="meld-preview-close"
-          onClick={() =>
-            setPreviewMeldId(null)
-          }
-        >
-          ✕
-        </button>
-
-        <div className="meld-preview-cards">
-          {meld.cards.map((card) => (
-            <CardView
-              key={card.id}
-              card={card}
-              size="lg"
-              disabled
-            />
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-})()}
 
             <div className="table-discard-area">
               {state.discard.length > 0 ? (
@@ -674,6 +631,51 @@ function ExistingGameHome() {
           </div>
         </div>
       </div>
+
+      {previewMeldId && (() => {
+        const meld = state.melds.find(
+          (m) => m.id === previewMeldId,
+        );
+      
+        if (!meld) return null;
+      
+        return (
+          <div
+            className="meld-preview-overlay"
+            onClick={() =>
+              setPreviewMeldId(null)
+            }
+          >
+            <div
+              className="meld-preview-window"
+              onClick={(e) =>
+                e.stopPropagation()
+              }
+            >
+              <button
+                type="button"
+                className="meld-preview-close"
+                onClick={() =>
+      setPreviewMeldId(null)
+                }
+              >
+                ✕
+              </button>
+      
+              <div className="meld-preview-cards">
+                {meld.cards.map((card) => (
+      <CardView
+        key={card.id}
+        card={card}
+        size="lg"
+        disabled
+      />
+                ))}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       <div className="action-dock p-2 md:p-3 space-y-2">
         {message && (
