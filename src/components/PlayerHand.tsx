@@ -107,16 +107,16 @@ function calculateGeometry(
    */
   const cardWidth =
     portrait
-      ? 58
+      ? 70
       : landscape
-        ? 56
+        ? 68
         : 84;
 
   const cardHeight =
     portrait
-      ? 82
+      ? 104
       : landscape
-        ? 80
+        ? 100
         : 118;
 
   const horizontalPadding =
@@ -150,9 +150,9 @@ function calculateGeometry(
 
   const preferredStep =
     portrait
-      ? 31
+      ? 38
       : landscape
-        ? 33
+        ? 40
         : 48;
 
   const fitStep =
@@ -656,7 +656,7 @@ export function PlayerHand({
     compactMode !== 'desktop';
 
   const cardSize =
-    compact ? 'sm' : 'lg';
+    'lg';
 
   /*
    * Eli büyükten küçüğe sıralar:
@@ -784,7 +784,7 @@ export function PlayerHand({
           let y =
             compact
               ? Math.round(
-                  fan.y * 0.45,
+                  fan.y * 0.58,
                 )
               : fan.y;
 

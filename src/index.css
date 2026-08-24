@@ -2617,3 +2617,237 @@ button {
     font-size: 9px;
   }
 }
+
+
+/* =========================================================
+   MOBİL YAN PERLER - OYUNCU İSMİNİN ALTINDA KALMASIN
+   Eda / Duru perleri görünür ve tıklanabilir kalır.
+   ========================================================= */
+
+@media (max-width: 1000px) {
+  /*
+   * Oyuncu koltuğu görsel olarak kalır ama dokunma/tıklama
+   * olaylarını arkasındaki perlerden çalmaz.
+   */
+  .table-seat-left,
+  .table-seat-right {
+    pointer-events: none !important;
+    z-index: 24 !important;
+  }
+
+  /*
+   * Yan per alanları oyuncu kutularının üst katmanında olsun.
+   * Böylece isim/el kutusu işlenebilir peri kapatmaz.
+   */
+  .table-meld-zone-left,
+  .table-meld-zone-right {
+    z-index: 46 !important;
+    pointer-events: auto !important;
+  }
+
+  .orientation-left .table-player-melds-scroll,
+  .orientation-right .table-player-melds-scroll {
+    position: relative !important;
+    z-index: 47 !important;
+  }
+
+  .orientation-left .table-meld,
+  .orientation-right .table-meld {
+    position: relative !important;
+    z-index: 48 !important;
+    pointer-events: auto !important;
+  }
+
+  /*
+   * İşle modunda otomatik odaklanan per, yan oyuncu kutuları
+   * dahil masadaki normal katmanların tamamından önde olsun.
+   */
+  .table-meld.is-auto-focused,
+  .table-meld.is-appendable {
+    z-index: 70 !important;
+    pointer-events: auto !important;
+  }
+}
+
+
+/* ---------------------------------------------------------
+   DİKEY TELEFON - YAN PERLERİ ORTADAKİ İSİM KUTUSUNDAN AYIR
+   --------------------------------------------------------- */
+@media (max-width: 760px) and (orientation: portrait) {
+  /*
+   * Oyuncu kutusu orta hizada kalıyor.
+   * Per alanını biraz masa içine taşıyarak isim/el paneliyle
+   * birebir üst üste gelmesini azaltıyoruz.
+   */
+  .table-meld-zone-left {
+    left: 22px !important;
+  }
+
+  .table-meld-zone-right {
+    right: 22px !important;
+  }
+
+  .table-meld-zone-left,
+  .table-meld-zone-right {
+    top: 14% !important;
+    bottom: 14% !important;
+    width: 104px !important;
+  }
+
+  /*
+   * Scrollbar parmakla rahat kullanılabilsin.
+   */
+  .orientation-left .table-player-melds-scroll,
+  .orientation-right .table-player-melds-scroll {
+    padding-right: 3px !important;
+    touch-action: pan-y !important;
+  }
+}
+
+
+/* ---------------------------------------------------------
+   YATAY TELEFON
+   --------------------------------------------------------- */
+@media (max-width: 1000px) and (orientation: landscape) {
+  .table-meld-zone-left {
+    left: 16px !important;
+  }
+
+  .table-meld-zone-right {
+    right: 16px !important;
+  }
+
+  .table-meld-zone-left,
+  .table-meld-zone-right {
+    top: 14% !important;
+    bottom: 14% !important;
+    width: 128px !important;
+  }
+}
+
+
+/* =========================================================
+   İŞLENECEK PERİ OTOMATİK ÖNE GETİR - VURGU
+   ========================================================= */
+
+.table-meld.is-auto-focused {
+  outline: 3px solid rgba(68, 227, 139, 0.95) !important;
+  outline-offset: 3px !important;
+
+  filter:
+    brightness(1.14)
+    drop-shadow(
+      0 0 16px
+      rgba(68, 227, 139, 0.72)
+    ) !important;
+
+  animation:
+    mobileAutoMeldFocus
+    0.95s
+    ease-in-out
+    infinite !important;
+}
+
+@keyframes mobileAutoMeldFocus {
+  0%,
+  100% {
+    outline-color: rgba(68, 227, 139, 0.5);
+  }
+
+  50% {
+    outline-color: rgba(68, 227, 139, 1);
+  }
+}
+
+
+/* =========================================================
+   MOBİL EL - DAHA BÜYÜK VE MASAYA DAHA YAKIN
+   Sinek / maça sembollerinin daha rahat ayırt edilmesi için
+   PlayerHand mobilde lg kart kullanır.
+   ========================================================= */
+
+@media (max-width: 760px) and (orientation: portrait) {
+  /*
+   * Kontrol alanını masaya yaklaştır.
+   * Akışı bozmadan görsel olarak masanın altına yaklaşır.
+   */
+  .action-dock {
+    margin-top: -14px !important;
+    padding-top: 3px !important;
+  }
+
+  /*
+   * Büyük kart için biraz daha yüksek el viewport'u.
+   * 13+ kart yatayda üst üste bindirilerek yine ekrana sığar.
+   */
+  .video-hand-viewport {
+    height: 126px !important;
+    min-height: 126px !important;
+    margin-top: -8px !important;
+    overflow: hidden !important;
+  }
+
+  .video-hand-card {
+    bottom: 4px !important;
+  }
+
+  /*
+   * Sırala düğmesini kartların üstüne binmeden kompakt tut.
+   */
+  .hand-sort-button {
+    top: 0 !important;
+    z-index: 2600 !important;
+  }
+
+  /*
+   * Siyah sembollerin küçük ekranda daha net görünmesi.
+   * Renk değiştirmiyoruz; sadece kontrast ve keskinlik artırılır.
+   */
+  .video-hand-card .playing-card {
+    filter:
+      contrast(1.08)
+      saturate(1.04);
+  }
+}
+
+@media (max-width: 1000px) and (orientation: landscape) {
+  .action-dock {
+    margin-top: -10px !important;
+    padding-top: 2px !important;
+  }
+
+  .video-hand-viewport {
+    height: 118px !important;
+    min-height: 118px !important;
+    margin-top: -7px !important;
+    overflow: hidden !important;
+  }
+
+  .video-hand-card {
+    bottom: 3px !important;
+  }
+
+  .video-hand-card .playing-card {
+    filter:
+      contrast(1.08)
+      saturate(1.04);
+  }
+}
+
+/*
+ * Tam ekran / fit modunda da kartları aşırı küçültme.
+ * Önceki 78px el yüksekliğini biraz artırıyoruz.
+ */
+@media (max-width: 1000px) and (orientation: landscape) {
+  .mobile-scale-stage.is-fit-mode .action-dock {
+    flex-basis: 132px !important;
+    height: 132px !important;
+    min-height: 132px !important;
+    max-height: 132px !important;
+  }
+
+  .mobile-scale-stage.is-fit-mode .video-hand-viewport {
+    height: 96px !important;
+    min-height: 96px !important;
+  }
+}
