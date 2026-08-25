@@ -1,4 +1,8 @@
 // Anastra - Tek kart görünümü
+import {
+  motion,
+} from 'motion/react';
+
 import type {
   Card,
 } from '../game/types';
@@ -8,6 +12,26 @@ import {
   suitSymbol,
 } from '../game/deck';
 
+/*
+ * Kartın deste/el/yer/per arasında geçerken kullandığı
+ * paylaşılan animasyon kimliği. Aynı karta ait tüm
+ * görünümler bu id'yi taşırsa framer-motion, kart bir
+ * konteynerden diğerine geçtiğinde otomatik olarak "uçuş"
+ * (shared layout) animasyonu üretir.
+ */
+export function cardFlightId(
+  cardId: string,
+): string {
+  return `card-flight-${cardId}`;
+}
+
+const flightTransition = {
+  type: 'spring' as const,
+  stiffness: 520,
+  damping: 40,
+  mass: 0.7,
+};
+
 interface CardViewProps {
   card: Card;
 
@@ -16,6 +40,15 @@ interface CardViewProps {
   highlighted?: boolean;
 
   disabled?: boolean;
+
+  /*
+   * Bu kart görünümünün uçuş animasyonuna katılıp
+   * katılmayacağı. Aynı karta ait birden fazla görünüm
+   * aynı anda ekranda olabileceği durumlarda (örn. per
+   * önizleme penceresi) çakışmayı önlemek için false
+   * geçilmelidir.
+   */
+  animated?: boolean;
 
   size?:
     | 'sm'
@@ -63,6 +96,7 @@ export function CardView({
   selected,
   highlighted,
   disabled,
+  animated = true,
   size = 'md',
   onClick,
 }: CardViewProps) {
@@ -83,7 +117,20 @@ export function CardView({
     );
 
   return (
-    <button
+    <motion.button
+      layout={animated}
+      layoutId={
+        animated
+          ? cardFlightId(card.id)
+          : undefined
+      }
+      transition={flightTransition}
+      initial={
+        animated
+          ? { opacity: 0, scale: 0.7 }
+          : false
+      }
+      animate={{ opacity: 1, scale: 1 }}
       type="button"
       onClick={
         onClick
@@ -237,7 +284,7 @@ export function CardView({
           className="pointer-events-none absolute inset-0 z-20 rounded-[inherit] bg-gradient-to-t from-emerald-300/10 to-transparent"
         />
       )}
-    </button>
+    </motion.button>
   );
 }
 

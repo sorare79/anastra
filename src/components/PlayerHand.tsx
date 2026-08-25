@@ -911,6 +911,7 @@ export function PlayerHand({
                 disabled={
                   disabled
                 }
+                animated={false}
               />
             </motion.div>
           );

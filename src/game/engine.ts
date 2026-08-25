@@ -371,11 +371,68 @@ export function canLayOffToMeld(
     return false;
   }
 
+  /*
+   * KENDİ TAKIMININ PERİ
+   *
+   * SET:
+   * Mevcut canAppendToMeld() kuralı aynen korunur.
+   *
+   * RUN:
+   * Rakip daha önce serinin ucunu değiştirmiş olabilir.
+   * Örneğin 7-8-9 serisine rakip 10 işlediğinde masa
+   * üzerinde 7-8-10 kalabilir. Bu per artık klasik
+   * isValidRun() kontrolünden geçmez; buna rağmen açık
+   * uçlardan işlenmeye devam edebilmelidir.
+   *
+   * Bu nedenle run için bütün seriyi yeniden doğrulamak
+   * yerine yalnızca:
+   * - aynı suit
+   * - düşük veya yüksek uca tam bir basamak ekleme
+   * şartlarını kontrol ediyoruz.
+   */
   if (meld.ownerTeam === player.team) {
-    return canAppendToMeld(meld, card);
+    if (meld.type === 'run') {
+      if (
+        meld.cards.length === 0 ||
+        card.suit !== meld.cards[0].suit
+      ) {
+        return false;
+      }
+
+      const ordered =
+        sortedRunCards(
+          meld.cards,
+        );
+
+      const firstValue =
+        ordered[0].rankValue;
+
+      const lastValue =
+        ordered[
+          ordered.length - 1
+        ].rankValue;
+
+      const cardValue =
+        card.rankValue;
+
+      return (
+        cardValue ===
+          firstValue - 1 ||
+        cardValue ===
+          lastValue + 1
+      );
+    }
+
+    return canAppendToMeld(
+      meld,
+      card,
+    );
   }
 
-  return canCloseOpponentMeld(meld, card);
+  return canCloseOpponentMeld(
+    meld,
+    card,
+  );
 }
 
 // --------------------------------------------------

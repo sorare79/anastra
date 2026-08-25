@@ -1,5 +1,6 @@
 // Anastra - Ana oyun sayfası
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { AnimatePresence, motion } from 'motion/react';
 import { useAnastra } from '../hooks/useAnastra';
 import { PlayerHand } from '../components/PlayerHand';
 import { OpponentSeat } from '../components/OpponentSeat';
@@ -55,6 +56,34 @@ function ExistingGameHome() {
   const [previewMeldId, setPreviewMeldId] = useState<string | null>(null);
 
   const [fitMode, setFitMode] = useState(false);
+
+  /*
+   * Yerdeki kartlar çoğaldığında yatay scroll'u otomatik
+   * olarak en son atılan karta götürür.
+   */
+  const discardScrollRef =
+    useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const element =
+      discardScrollRef.current;
+
+    if (!element) {
+      return;
+    }
+
+    const frame =
+      requestAnimationFrame(() => {
+        element.scrollTo({
+          left: element.scrollWidth,
+          behavior: 'smooth',
+        });
+      });
+
+    return () => {
+      cancelAnimationFrame(frame);
+    };
+  }, [state.discard.length]);
 
   const me = state.players[0];
   const isMyTurn = state.currentSeat === 0;
@@ -475,8 +504,12 @@ function ExistingGameHome() {
 
             <div className="table-discard-area">
               {state.discard.length > 0 ? (
-                <div className="max-w-[58vw] md:max-w-[480px] overflow-x-auto overflow-y-visible pt-5 pb-5">
+                <div
+                  ref={discardScrollRef}
+                  className="max-w-[58vw] md:max-w-[480px] overflow-x-auto overflow-y-visible pt-5 pb-5"
+                >
                   <div className="flex items-end px-3 min-w-max">
+                    <AnimatePresence mode="popLayout">
                     {state.discard.map(
                       (card, index) => {
                         const isTop =
@@ -498,8 +531,19 @@ function ExistingGameHome() {
                           canSelect;
 
                         return (
-                          <button
+                          <motion.button
                             key={card.id}
+                            layout
+                            exit={{
+                              opacity: 0,
+                              scale: 0.6,
+                              transition: { duration: 0.15 },
+                            }}
+                            transition={{
+                              type: 'spring',
+                              stiffness: 520,
+                              damping: 40,
+                            }}
                             type="button"
                             onClick={() => {
                               if (!canInteract) {
@@ -510,7 +554,7 @@ function ExistingGameHome() {
                             }}
                             disabled={!canInteract}
                             className={[
-                              'relative border-0 bg-transparent p-0 transition-all duration-150',
+                              'relative border-0 bg-transparent p-0',
                               index === 0
                                 ? ''
                                 : '-ml-9 md:-ml-11',
@@ -538,10 +582,11 @@ function ExistingGameHome() {
                                 disabled
                               />
                             </div>
-                          </button>
+                          </motion.button>
                         );
                       },
                     )}
+                    </AnimatePresence>
                   </div>
                 </div>
               ) : (
@@ -669,6 +714,7 @@ function ExistingGameHome() {
         card={card}
         size="lg"
         disabled
+        animated={false}
       />
                 ))}
               </div>
@@ -739,6 +785,7 @@ function ExistingGameHome() {
                         card={card}
                         size="sm"
                         disabled
+                        animated={false}
                       />
                     ))}
                   </button>
