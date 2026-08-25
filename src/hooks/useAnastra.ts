@@ -419,7 +419,7 @@ export function useAnastra(targetScore: number) {
       currentState.currentSeat !== 0 ||
       currentState.phase !== 'draw'
     ) {
-      return;
+      return false;
     }
 
     discardTakeBackupRef.current = null;
@@ -437,6 +437,7 @@ export function useAnastra(targetScore: number) {
 
     finishHistoryWhenNeeded(currentState, nextState);
     setState(nextState);
+    return true;
   }, []);
 
   const humanDrawDiscard = useCallback(
@@ -447,12 +448,12 @@ export function useAnastra(targetScore: number) {
         currentState.currentSeat !== 0 ||
         currentState.phase !== 'draw'
       ) {
-        return;
+        return false;
       }
 
       if (currentState.discard.length === 0) {
         flash('Yerde alınacak kart yok.', 'error');
-        return;
+        return false;
       }
 
       const player = currentState.players[0];
@@ -467,7 +468,7 @@ export function useAnastra(targetScore: number) {
             : 'Rakibin son attığı kart alınamadı.',
           'error',
         );
-        return;
+        return false;
       }
 
       discardTakeBackupRef.current = currentState;
@@ -489,7 +490,7 @@ export function useAnastra(targetScore: number) {
         discardTakeBackupRef.current = null;
         pendingDiscardHistoryRef.current = null;
         flash('Yerden kart alma işlemi gerçekleşmedi.', 'error');
-        return;
+        return false;
       }
 
       const added = addedHandCards(currentState, nextState, 0);
@@ -518,7 +519,7 @@ export function useAnastra(targetScore: number) {
             : 'Rakibin son attığı kartı aldın. Bu kartla elini açmalısın.',
           'info',
         );
-        return;
+        return false;
       }
 
       flash(
@@ -531,6 +532,7 @@ export function useAnastra(targetScore: number) {
           : 'Yerden kartları aldın. Seçtiğin ilk kartı şimdi işlemelisin.',
         'info',
       );
+      return true;
     },
     [flash],
   );

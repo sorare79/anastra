@@ -22,6 +22,7 @@ import {
 } from '../game/engine';
 import { suggestMelds } from '../game/ai';
 import type { Card } from '../game/types';
+import { playGameSound } from '../utils/sound';
 
 
 function ExistingGameHome() {
@@ -56,6 +57,39 @@ function ExistingGameHome() {
   const [previewMeldId, setPreviewMeldId] = useState<string | null>(null);
 
   const [fitMode, setFitMode] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [yourTurnPulse, setYourTurnPulse] = useState(false);
+
+  const previousSeatRef = useRef(state.currentSeat);
+  const previousMeldCountRef = useRef(state.melds.length);
+
+  useEffect(() => {
+    const previousSeat = previousSeatRef.current;
+
+    if (previousSeat !== 0 && state.currentSeat === 0) {
+      setYourTurnPulse(true);
+      playGameSound('turn', soundEnabled);
+
+      const timer = window.setTimeout(() => {
+        setYourTurnPulse(false);
+      }, 900);
+
+      previousSeatRef.current = state.currentSeat;
+      return () => window.clearTimeout(timer);
+    }
+
+    previousSeatRef.current = state.currentSeat;
+  }, [state.currentSeat, soundEnabled]);
+
+  useEffect(() => {
+    const previousCount = previousMeldCountRef.current;
+
+    if (state.melds.length > previousCount) {
+      playGameSound('meld', soundEnabled);
+    }
+
+    previousMeldCountRef.current = state.melds.length;
+  }, [state.melds.length, soundEnabled]);
 
   /*
    * Yerdeki kartlar çoğaldığında yatay scroll'u otomatik
@@ -269,7 +303,24 @@ function ExistingGameHome() {
     const successful = humanDiscard(cardId);
 
     if (successful) {
+      playGameSound('discard', soundEnabled);
       resetLocalActions();
+    }
+  };
+
+  const drawDeckWithSound = () => {
+    const successful = humanDrawDeck();
+
+    if (successful) {
+      playGameSound('draw', soundEnabled);
+    }
+  };
+
+  const drawDiscardWithSound = (index?: number) => {
+    const successful = humanDrawDiscard(index);
+
+    if (successful) {
+      playGameSound('draw', soundEnabled);
     }
   };
 
@@ -404,6 +455,17 @@ function ExistingGameHome() {
 
           <button
             type="button"
+            onClick={() => setSoundEnabled((value) => !value)}
+            className="fullscreen-button"
+            title={soundEnabled ? 'Sesleri kapat' : 'Sesleri aç'}
+            aria-label={soundEnabled ? 'Sesleri kapat' : 'Sesleri aç'}
+            aria-pressed={!soundEnabled}
+          >
+            {soundEnabled ? '🔊' : '🔇'}
+          </button>
+
+          <button
+            type="button"
             onClick={toggleFullscreen}
             className="fullscreen-button"
             title={fitMode ? 'Tam ekrandan çık' : 'Tam ekran / ekrana sığdır'}
@@ -415,7 +477,12 @@ function ExistingGameHome() {
       </div>
 
       <div className="anastra-table-shell">
-        <div className="anastra-table">
+        <div
+          className={[
+            'anastra-table',
+            yourTurnPulse ? 'is-your-turn-pulse' : '',
+          ].join(' ')}
+        >
           <div className="table-seat table-seat-top">
             <OpponentSeat
               player={state.players[2]}
@@ -486,7 +553,7 @@ function ExistingGameHome() {
             <div className="table-deck-area">
               <button
                 type="button"
-                onClick={humanDrawDeck}
+                onClick={drawDeckWithSound}
                 disabled={
                   !isMyTurn ||
                   state.phase !== 'draw'
@@ -550,7 +617,7 @@ function ExistingGameHome() {
                                 return;
                               }
 
-                              humanDrawDiscard(index);
+                              drawDiscardWithSound(index);
                             }}
                             disabled={!canInteract}
                             className={[
@@ -918,7 +985,7 @@ function ExistingGameHome() {
             <div className="flex justify-center">
               <button
                 type="button"
-                onClick={humanDrawDeck}
+                onClick={drawDeckWithSound}
                 className="game-button primary px-6 text-sm"
               >
                 Desteden Çek
