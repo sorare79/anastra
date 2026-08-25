@@ -2851,3 +2851,136 @@ button {
     min-height: 96px !important;
   }
 }
+
+
+/* =========================================================
+   MOBİL İŞLEME - ÜST OYUNCU PERİ TIKLAMA DÜZELTMESİ
+   Ege'nin koltuğu işlenebilir perin dokunma alanını kapatmasın.
+   ========================================================= */
+
+@media (max-width: 1000px) {
+  .table-seat-top,
+  .table-seat-left,
+  .table-seat-right {
+    pointer-events: none !important;
+    z-index: 24 !important;
+  }
+
+  .table-meld-zone-top,
+  .table-meld-zone-left,
+  .table-meld-zone-right,
+  .table-meld-zone-bottom {
+    z-index: 46 !important;
+    pointer-events: auto !important;
+  }
+
+  .table-player-melds,
+  .table-player-melds-scroll,
+  .table-player-melds-list {
+    pointer-events: auto !important;
+  }
+
+  .table-meld {
+    pointer-events: auto !important;
+    touch-action: manipulation !important;
+  }
+
+  .table-meld.is-appendable,
+  .table-meld.is-auto-focused {
+    position: relative !important;
+    z-index: 90 !important;
+    pointer-events: auto !important;
+    touch-action: manipulation !important;
+  }
+
+  .table-meld-zone-top {
+    top: 78px !important;
+  }
+}
+
+@media (max-width: 760px) and (orientation: portrait) {
+  .table-meld-zone-top {
+    top: 72px !important;
+    left: 14% !important;
+    right: 14% !important;
+    height: 126px !important;
+  }
+}
+
+@media (max-width: 1000px) and (orientation: landscape) {
+  .table-meld-zone-top {
+    top: 58px !important;
+    left: 18% !important;
+    right: 18% !important;
+    height: 104px !important;
+  }
+}
+
+
+/* =========================================================
+   MOBİL PER KATMAN ÇAKIŞMASI - AKTİF PER HER ZAMAN ÖNDE
+   Duru/Eda perleri Ege'nin perini kapatmasın.
+   ========================================================= */
+
+@media (max-width: 1000px) {
+  /*
+   * Per bölgelerinin boş alanları dokunmayı YAKALAMASIN.
+   * Yalnızca gerçek per butonları tıklanabilir olsun.
+   */
+  .table-meld-zone-top,
+  .table-meld-zone-left,
+  .table-meld-zone-right,
+  .table-meld-zone-bottom,
+  .table-player-melds,
+  .table-player-melds-scroll,
+  .table-player-melds-list {
+    pointer-events: none !important;
+  }
+
+  .table-meld {
+    pointer-events: auto !important;
+    touch-action: manipulation !important;
+  }
+
+  /*
+   * Normal katman sırası:
+   * üst perler yan perlerden biraz önde.
+   * Böylece Duru'nun uzun perleri Ege'nin üst perini kapatmaz.
+   */
+  .table-meld-zone-left,
+  .table-meld-zone-right {
+    z-index: 44 !important;
+  }
+
+  .table-meld-zone-bottom {
+    z-index: 45 !important;
+  }
+
+  .table-meld-zone-top {
+    z-index: 56 !important;
+  }
+
+  /*
+   * İşle modunda hangi bölgede uygun per varsa
+   * O BÖLGENİN TAMAMI en öne çıkar.
+   *
+   * Modern Chrome/Android :has() destekliyor.
+   */
+  .table-meld-zone-top:has(.table-meld.is-appendable),
+  .table-meld-zone-left:has(.table-meld.is-appendable),
+  .table-meld-zone-right:has(.table-meld.is-appendable),
+  .table-meld-zone-bottom:has(.table-meld.is-appendable),
+  .table-meld-zone-top:has(.table-meld.is-auto-focused),
+  .table-meld-zone-left:has(.table-meld.is-auto-focused),
+  .table-meld-zone-right:has(.table-meld.is-auto-focused),
+  .table-meld-zone-bottom:has(.table-meld.is-auto-focused) {
+    z-index: 120 !important;
+  }
+
+  .table-meld.is-appendable,
+  .table-meld.is-auto-focused {
+    position: relative !important;
+    z-index: 121 !important;
+    pointer-events: auto !important;
+  }
+}
