@@ -514,9 +514,57 @@ export function PlayerHand({
       draggedLeft +
       geometry.cardWidth / 2;
 
-    const targetIndex =
-      geometry.step > 0
-        ? Math.max(
+    let targetIndex = 0;
+
+    if (geometry.step > 0) {
+      if (
+        compactMode !== 'desktop' &&
+        orderedHand.length > 13
+      ) {
+        const firstRowCount = 13;
+        const inSecondRow =
+          drag.startIndex >= firstRowCount;
+
+        const rowStartIndex =
+          inSecondRow ? firstRowCount : 0;
+
+        const rowCount =
+          inSecondRow
+            ? orderedHand.length - firstRowCount
+            : firstRowCount;
+
+        const rowTotalWidth =
+          geometry.cardWidth +
+          geometry.step *
+            Math.max(0, rowCount - 1);
+
+        const rowStartX =
+          Math.max(
+            6,
+            (container.clientWidth - rowTotalWidth) / 2,
+          );
+
+        const rowTargetIndex =
+          Math.max(
+            0,
+            Math.min(
+              rowCount - 1,
+              Math.round(
+                (
+                  draggedCenter -
+                  rowStartX -
+                  geometry.cardWidth / 2
+                ) /
+                  geometry.step,
+              ),
+            ),
+          );
+
+        targetIndex =
+          rowStartIndex + rowTargetIndex;
+      } else {
+        targetIndex =
+          Math.max(
             0,
             Math.min(
               orderedHand.length - 1,
@@ -529,8 +577,9 @@ export function PlayerHand({
                   geometry.step,
               ),
             ),
-          )
-        : 0;
+          );
+      }
+    }
 
     if (
       targetIndex !==
@@ -655,6 +704,29 @@ export function PlayerHand({
   const compact =
     compactMode !== 'desktop';
 
+  /*
+   * Mobilde elde 13'ten fazla kart varsa eli iki sıraya böleriz.
+   * Masaüstü görünümü aynen tek sıra kalır.
+   */
+  const twoRowMobile =
+    compact &&
+    orderedHand.length > 13;
+
+  const firstRowCount =
+    twoRowMobile
+      ? 13
+      : orderedHand.length;
+
+  const secondRowCount =
+    twoRowMobile
+      ? orderedHand.length - firstRowCount
+      : 0;
+
+  const secondRowYOffset =
+    twoRowMobile
+      ? Math.round(geometry.cardHeight * 0.72)
+      : 0;
+
   const cardSize =
     'lg';
 
@@ -725,7 +797,10 @@ export function PlayerHand({
       className="video-hand-viewport"
       style={{
         height:
-          geometry.containerHeight,
+          geometry.containerHeight +
+          (twoRowMobile
+            ? secondRowYOffset
+            : 0),
         transform:
           compact
             ? 'translateY(-4px)'
@@ -776,20 +851,62 @@ export function PlayerHand({
             activeDrag?.cardId ===
             card.id;
 
+          const inSecondRow =
+            twoRowMobile &&
+            index >= firstRowCount;
+
+          const rowIndex =
+            inSecondRow
+              ? index - firstRowCount
+              : index;
+
+          const rowCount =
+            inSecondRow
+              ? secondRowCount
+              : firstRowCount;
+
+          const rowTotalWidth =
+            geometry.cardWidth +
+            geometry.step *
+              Math.max(
+                0,
+                rowCount - 1,
+              );
+
+          const rowStartX =
+            twoRowMobile
+              ? Math.max(
+                  6,
+                  (containerWidth - rowTotalWidth) / 2,
+                )
+              : geometry.startX;
+
+          const rowFan =
+            twoRowMobile
+              ? fanTransform(
+                  rowIndex,
+                  rowCount,
+                )
+              : fan;
+
           let x =
-            geometry.startX +
-            index *
+            rowStartX +
+            rowIndex *
               geometry.step;
 
           let y =
             compact
               ? Math.round(
-                  fan.y * 0.58,
+                  rowFan.y * 0.58,
                 )
-              : fan.y;
+              : rowFan.y;
+
+          if (inSecondRow) {
+            y += secondRowYOffset;
+          }
 
           let rotate =
-            fan.rotate;
+            rowFan.rotate;
 
           if (
             dragging &&
@@ -870,7 +987,9 @@ export function PlayerHand({
                     ? 1000
                     : selected
                       ? 500
-                      : index + 1,
+                      : inSecondRow
+                        ? 200 + rowIndex
+                        : index + 1,
               }}
               onPointerDown={(
                 event,

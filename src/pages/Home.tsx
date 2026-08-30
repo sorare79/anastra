@@ -24,6 +24,12 @@ import { suggestMelds } from '../game/ai';
 import type { Card } from '../game/types';
 import { playGameSound } from '../utils/sound';
 
+interface DiscardFlight {
+  card: Card;
+  from: DOMRect;
+  to: DOMRect;
+}
+
 
 function ExistingGameHome() {
   const [started, setStarted] = useState(false);
@@ -59,6 +65,10 @@ function ExistingGameHome() {
   const [fitMode, setFitMode] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [yourTurnPulse, setYourTurnPulse] = useState(false);
+  const [discardFlight, setDiscardFlight] = useState<DiscardFlight | null>(null);
+
+  const cardElementsRef = useRef(new Map<string, HTMLDivElement>());
+  const discardTargetRef = useRef<HTMLDivElement | null>(null);
 
   const previousSeatRef = useRef(state.currentSeat);
   const previousMeldCountRef = useRef(state.melds.length);
@@ -294,16 +304,39 @@ function ExistingGameHome() {
     }
   };
 
+  const registerHandCardElement = (
+    cardId: string,
+    element: HTMLDivElement | null,
+  ) => {
+    if (element) {
+      cardElementsRef.current.set(cardId, element);
+    } else {
+      cardElementsRef.current.delete(cardId);
+    }
+  };
+
   const doDiscard = () => {
     if (selected.size !== 1) {
       return;
     }
 
     const cardId = [...selected][0];
+    const card = me.hand.find((item) => item.id === cardId);
+    const cardElement = cardElementsRef.current.get(cardId);
+    const discardTarget = discardTargetRef.current;
+
+    const from = cardElement?.getBoundingClientRect();
+    const to = discardTarget?.getBoundingClientRect();
+
     const successful = humanDiscard(cardId);
 
     if (successful) {
       playGameSound('discard', soundEnabled);
+
+      if (card && from && to) {
+        setDiscardFlight({ card, from, to });
+      }
+
       resetLocalActions();
     }
   };
@@ -569,7 +602,10 @@ function ExistingGameHome() {
             </div>
 
 
-            <div className="table-discard-area">
+            <div
+              ref={discardTargetRef}
+              className="table-discard-area"
+            >
               {state.discard.length > 0 ? (
                 <div
                   ref={discardScrollRef}
@@ -790,6 +826,54 @@ function ExistingGameHome() {
         );
       })()}
 
+      <AnimatePresence>
+        {discardFlight && (
+          <motion.div
+            key={`discard-flight-${discardFlight.card.id}`}
+            initial={{
+              left: discardFlight.from.left,
+              top: discardFlight.from.top,
+              width: discardFlight.from.width,
+              height: discardFlight.from.height,
+              rotate: 0,
+              scale: 1,
+              opacity: 1,
+            }}
+            animate={{
+              left:
+                discardFlight.to.left +
+                discardFlight.to.width / 2 -
+                discardFlight.from.width / 2,
+              top:
+                discardFlight.to.top +
+                discardFlight.to.height / 2 -
+                discardFlight.from.height / 2,
+              rotate: 5,
+              scale: 0.9,
+              opacity: 1,
+            }}
+            exit={{ opacity: 0, scale: 0.82 }}
+            transition={{
+              duration: 0.32,
+              ease: [0.22, 1, 0.36, 1],
+            }}
+            onAnimationComplete={() => setDiscardFlight(null)}
+            style={{
+              position: 'fixed',
+              zIndex: 9999,
+              pointerEvents: 'none',
+            }}
+          >
+            <CardView
+              card={discardFlight.card}
+              size="lg"
+              disabled
+              animated={false}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <div className="action-dock p-2 md:p-3 space-y-2">
         {message && (
           <div
@@ -870,6 +954,7 @@ function ExistingGameHome() {
           disabled={!isMyTurn}
           onToggle={toggleCard}
           onReorder={reorderHand}
+          onCardElement={registerHandCardElement}
         />
 
         {isMyTurn &&
