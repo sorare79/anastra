@@ -818,11 +818,7 @@ export function PlayerHand({
             : 0),
         transform:
           compact
-            ? twoRowMobile
-              ? compactMode === 'portrait'
-                ? 'translateY(-82px)'
-                : 'translateY(-70px)'
-              : 'translateY(-4px)'
+            ? 'translateY(-4px)'
             : 'translateY(-18px)',
       }}
     >
@@ -920,8 +916,8 @@ export function PlayerHand({
                 )
               : rowFan.y;
 
-          if (inSecondRow) {
-            y += secondRowYOffset;
+          if (twoRowMobile && !inSecondRow) {
+            y -= secondRowYOffset;
           }
 
           let rotate =
