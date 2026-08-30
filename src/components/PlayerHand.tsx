@@ -820,8 +820,8 @@ export function PlayerHand({
           compact
             ? twoRowMobile
               ? compactMode === 'portrait'
-                ? 'translateY(-155px)'
-                : 'translateY(-110px)'
+                ? 'translateY(-193px)'
+                : 'translateY(-148px)'
               : 'translateY(-4px)'
             : 'translateY(-18px)',
       }}
