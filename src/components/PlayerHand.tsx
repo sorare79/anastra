@@ -161,7 +161,7 @@ function calculateGeometry(
 
   /*
    * Mobilde "minimum step" yüzünden elin ekran dışına taşmasına
-   * izin vermiyoruz. 13+ kartta adım gerektiği kadar daralabilir.
+   * izin vermiyoruz. 15+ kartta adım gerektiği kadar daralabilir.
    */
   const step =
     compact
@@ -519,7 +519,7 @@ export function PlayerHand({
     if (geometry.step > 0) {
       if (
         compactMode !== 'desktop' &&
-        orderedHand.length > 13
+        orderedHand.length > 15
       ) {
         const dragFirstRowCount =
           Math.ceil(
@@ -711,12 +711,12 @@ export function PlayerHand({
     compactMode !== 'desktop';
 
   /*
-   * Mobilde elde 13'ten fazla kart varsa eli iki sıraya böleriz.
+   * Mobilde elde 15'ten fazla kart varsa eli iki sıraya böleriz.
    * Masaüstü görünümü aynen tek sıra kalır.
    */
   const twoRowMobile =
     compact &&
-    orderedHand.length > 13;
+    orderedHand.length > 15;
 
   /*
    * İki sıralı mobil elde üst sıra biraz daha geniş tutulur.
