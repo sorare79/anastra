@@ -521,17 +521,23 @@ export function PlayerHand({
         compactMode !== 'desktop' &&
         orderedHand.length > 13
       ) {
-        const firstRowCount = 13;
+        const dragFirstRowCount =
+          Math.ceil(
+            (orderedHand.length + 1) / 2,
+          );
+
         const inSecondRow =
-          drag.startIndex >= firstRowCount;
+          drag.startIndex >= dragFirstRowCount;
 
         const rowStartIndex =
-          inSecondRow ? firstRowCount : 0;
+          inSecondRow
+            ? dragFirstRowCount
+            : 0;
 
         const rowCount =
           inSecondRow
-            ? orderedHand.length - firstRowCount
-            : firstRowCount;
+            ? orderedHand.length - dragFirstRowCount
+            : dragFirstRowCount;
 
         const rowTotalWidth =
           geometry.cardWidth +
@@ -712,9 +718,18 @@ export function PlayerHand({
     compact &&
     orderedHand.length > 13;
 
+  /*
+   * İki sıralı mobil elde üst sıra biraz daha geniş tutulur.
+   * Örnek:
+   * 14 kart -> üstte 8, altta 6
+   * 15 kart -> üstte 8, altta 7
+   * 16 kart -> üstte 9, altta 7
+   */
   const firstRowCount =
     twoRowMobile
-      ? 13
+      ? Math.ceil(
+          (orderedHand.length + 1) / 2,
+        )
       : orderedHand.length;
 
   const secondRowCount =
@@ -805,8 +820,8 @@ export function PlayerHand({
           compact
             ? twoRowMobile
               ? compactMode === 'portrait'
-                ? 'translateY(-44px)'
-                : 'translateY(-34px)'
+                ? 'translateY(-82px)'
+                : 'translateY(-70px)'
               : 'translateY(-4px)'
             : 'translateY(-18px)',
       }}
