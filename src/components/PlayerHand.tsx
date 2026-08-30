@@ -816,13 +816,25 @@ export function PlayerHand({
           (twoRowMobile
             ? secondRowYOffset
             : 0),
+
+        /*
+         * İki sıralı mobil elde translateY kullanmıyoruz.
+         * translateY sadece görüntüyü yukarı taşır ama eski yerini
+         * layout içinde boş bırakır; bu yüzden butonlar aşağıda kalır.
+         *
+         * Negatif marginTop ise hem eli hem de altındaki butonları
+         * birlikte yukarı taşır ve gereksiz boşluğu kaldırır.
+         */
+        marginTop:
+          twoRowMobile
+            ? compactMode === 'portrait'
+              ? -150
+              : -105
+            : 0,
+
         transform:
           compact
-            ? twoRowMobile
-              ? compactMode === 'portrait'
-                ? 'translateY(-193px)'
-                : 'translateY(-148px)'
-              : 'translateY(-4px)'
+            ? 'translateY(-4px)'
             : 'translateY(-18px)',
       }}
     >
