@@ -109,6 +109,8 @@ export function createRound(
     discard: [],
     melds: [],
     scoringCards: [],
+    firstOpenedSeat: null,
+    roundFinisherSeat: null,
     currentSeat: startSeat,
     dealerSeat,
     phase: 'draw',
@@ -937,6 +939,10 @@ export function openHand(
         ...newMelds,
       ],
       openThreshold: 51,
+      firstOpenedSeat:
+        state.firstOpenedSeat === null && !player.hasOpened
+          ? seat
+          : state.firstOpenedSeat,
       requiredDiscardCardId: null,
       takenDiscardCardIds: [],
       log: addLog(
@@ -1551,6 +1557,10 @@ export function endRound(
     teamScores,
     scoreHistory,
     winnerTeam,
+    roundFinisherSeat:
+      reason === 'finished' && finisherSeat !== undefined
+        ? finisherSeat
+        : null,
     openThreshold: 51,
     requiredDiscardCardId: null,
     takenDiscardCardIds: [],

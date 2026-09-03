@@ -253,6 +253,26 @@ export interface GameState {
    */
   scoringCards: ScoringCard[];
 
+  /*
+   * Bu elde 51 barajını geçerek
+   * elini ilk açan oyuncunun koltuğu.
+   *
+   * Henüz kimse açmadıysa null.
+   * Yeni elde tekrar null olur.
+   */
+  firstOpenedSeat: number | null;
+
+  /*
+   * Eli bitiren oyuncunun koltuğu.
+   *
+   * Oyuncu son kartını atarak
+   * eli bitirdiğinde set edilir.
+   *
+   * Deste bittiği için el sona ererse
+   * null kalır.
+   */
+  roundFinisherSeat: number | null;
+
   currentSeat: number;
 
   dealerSeat: number;

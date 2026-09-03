@@ -3068,3 +3068,51 @@ button {
   }
 }
 
+
+
+/* ==================================================
+   PROFESYONEL OYUN ÜST BARI
+   ================================================== */
+.game-topbar-pro {
+  display: grid;
+  grid-template-columns: minmax(150px, 1fr) auto minmax(150px, 1fr);
+  align-items: center;
+  gap: 14px;
+}
+.game-topbar-identity { min-width: 0; display: flex; align-items: baseline; gap: 12px; }
+.game-brand-pro { margin: 0; font-size: 19px; font-weight: 900; line-height: 1; }
+.game-round-meta { display: flex; align-items: center; gap: 6px; color: rgba(255,255,255,.48); font-size: 10px; font-weight: 700; white-space: nowrap; }
+.game-round-dot { color: rgba(246,196,83,.55); }
+.game-topbar-center { display: flex; align-items: center; justify-content: center; gap: 7px; padding: 4px 7px; border: 1px solid rgba(255,255,255,.09); border-radius: 999px; background: rgba(0,0,0,.2); box-shadow: inset 0 1px rgba(255,255,255,.05); }
+.team-score-pill { display: flex; align-items: center; gap: 7px; min-width: 70px; justify-content: center; }
+.team-score-pill strong { font-size: 16px; line-height: 1; font-variant-numeric: tabular-nums; }
+.team-score-pill-ours strong { color: #7dd3fc; }
+.team-score-pill-theirs strong { color: #fda4af; }
+.team-score-label { color: rgba(255,255,255,.46); font-size: 8px; font-weight: 900; letter-spacing: .12em; }
+.team-score-divider { color: rgba(255,255,255,.25); font-weight: 900; }
+.game-topbar-actions { min-width: 0; display: flex; align-items: center; justify-content: flex-end; gap: 6px; }
+.topbar-info-chip { display: inline-flex; align-items: center; gap: 5px; min-height: 30px; padding: 0 9px; border: 1px solid rgba(255,255,255,.08); border-radius: 10px; color: rgba(255,255,255,.55); background: rgba(255,255,255,.045); font-size: 10px; font-weight: 750; white-space: nowrap; }
+.topbar-first-opener { color: #fde68a; border-color: rgba(246,196,83,.24); background: rgba(246,196,83,.08); }
+.topbar-first-opener strong { color: #fff1b8; font-weight: 900; }
+
+@media (max-width: 760px) {
+  .game-topbar-pro { grid-template-columns: auto 1fr auto; gap: 6px; }
+  .game-topbar-identity { display: block; }
+  .game-brand-pro { font-size: 15px; }
+  .game-round-meta { margin-top: 2px; font-size: 7px; gap: 3px; }
+  .game-topbar-center { justify-self: center; gap: 4px; padding: 3px 5px; }
+  .team-score-pill { min-width: 45px; gap: 4px; }
+  .team-score-pill strong { font-size: 12px; }
+  .team-score-label { font-size: 6px; }
+  .game-topbar-actions { gap: 3px; }
+  .topbar-info-chip { min-height: 26px; padding: 0 6px; font-size: 8px; }
+  .topbar-first-opener-label { display: none; }
+}
+
+@media (max-width: 430px) {
+  .game-topbar-pro { padding-left: 7px; padding-right: 7px; }
+  .game-round-meta span:nth-child(3), .game-round-meta .game-round-dot { display: none; }
+  .topbar-info-chip:not(.topbar-first-opener) { display: none; }
+  .topbar-first-opener { max-width: 82px; overflow: hidden; text-overflow: ellipsis; }
+  .topbar-first-opener strong { overflow: hidden; text-overflow: ellipsis; }
+}

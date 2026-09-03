@@ -8,8 +8,10 @@ import { TableMeldArea } from '../components/TableMeldArea';
 import { ScorePanel } from '../components/ScorePanel';
 import { CardBack, CardView } from '../components/CardView';
 import {
+  MainMenuModal,
   RulesModal,
   SetupModal,
+  SettingsModal,
   RoundOverModal,
 } from '../components/Modals';
 import {
@@ -24,16 +26,17 @@ import { suggestMelds } from '../game/ai';
 import type { Card } from '../game/types';
 import { playGameSound } from '../utils/sound';
 
-interface DiscardFlight {
-  card: Card;
-  from: DOMRect;
-  to: DOMRect;
-}
 
 
 function ExistingGameHome() {
   const [started, setStarted] = useState(false);
+  const [showSetup, setShowSetup] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const [target, setTarget] = useState(751);
+  const [playerName, setPlayerName] = useState(() => {
+    if (typeof window === 'undefined') return '';
+    return window.localStorage.getItem('anastra-player-name') ?? '';
+  });
 
   const anastra = useAnastra(target);
 
@@ -63,15 +66,31 @@ function ExistingGameHome() {
   const [previewMeldId, setPreviewMeldId] = useState<string | null>(null);
 
   const [fitMode, setFitMode] = useState(false);
-  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [soundEnabled, setSoundEnabled] = useState(() => {
+    if (typeof window === 'undefined') return true;
+    return window.localStorage.getItem('anastra-sound-enabled') !== 'false';
+  });
   const [yourTurnPulse, setYourTurnPulse] = useState(false);
-  const [discardFlight, setDiscardFlight] = useState<DiscardFlight | null>(null);
-
-  const cardElementsRef = useRef(new Map<string, HTMLDivElement>());
-  const discardTargetRef = useRef<HTMLDivElement | null>(null);
 
   const previousSeatRef = useRef(state.currentSeat);
   const previousMeldCountRef = useRef(state.melds.length);
+  const previousFirstOpenedSeatRef = useRef<number | null>(
+    state.firstOpenedSeat,
+  );
+  const [firstOpenNoticeSeat, setFirstOpenNoticeSeat] = useState<number | null>(null);
+  const [finisherNoticeOpen, setFinisherNoticeOpen] = useState(false);
+  const [scoreReadyRound, setScoreReadyRound] = useState<number | null>(null);
+
+  useEffect(() => {
+    window.localStorage.setItem('anastra-player-name', playerName.trim());
+  }, [playerName]);
+
+  useEffect(() => {
+    window.localStorage.setItem(
+      'anastra-sound-enabled',
+      String(soundEnabled),
+    );
+  }, [soundEnabled]);
 
   useEffect(() => {
     const previousSeat = previousSeatRef.current;
@@ -100,6 +119,58 @@ function ExistingGameHome() {
 
     previousMeldCountRef.current = state.melds.length;
   }, [state.melds.length, soundEnabled]);
+
+  useEffect(() => {
+    const previous = previousFirstOpenedSeatRef.current;
+    const current = state.firstOpenedSeat;
+
+    if (previous === null && current !== null) {
+      setFirstOpenNoticeSeat(current);
+
+      const timer = window.setTimeout(() => {
+        setFirstOpenNoticeSeat(null);
+      }, 2200);
+
+      previousFirstOpenedSeatRef.current = current;
+      return () => window.clearTimeout(timer);
+    }
+
+    previousFirstOpenedSeatRef.current = current;
+  }, [state.firstOpenedSeat]);
+
+  useEffect(() => {
+    const roundIsOver =
+      state.phase === 'roundOver' ||
+      state.phase === 'gameOver';
+
+    if (!roundIsOver) {
+      setFinisherNoticeOpen(false);
+      setScoreReadyRound(null);
+      return;
+    }
+
+    /*
+     * Deste bittiyse bitiren oyuncu yok.
+     * Bu durumda skor ekranını doğrudan aç.
+     */
+    if (state.roundFinisherSeat === null) {
+      setFinisherNoticeOpen(false);
+      setScoreReadyRound(state.roundNumber);
+      return;
+    }
+
+    /*
+     * Bir oyuncu eli bitirdiyse skor ekranını kilitle.
+     * Önce bitiren oyuncu penceresi gösterilir.
+     * Kullanıcı "Skoru Gör" butonuna basınca skor açılır.
+     */
+    setScoreReadyRound(null);
+    setFinisherNoticeOpen(true);
+  }, [
+    state.phase,
+    state.roundFinisherSeat,
+    state.roundNumber,
+  ]);
 
   /*
    * Yerdeki kartlar çoğaldığında yatay scroll'u otomatik
@@ -130,6 +201,18 @@ function ExistingGameHome() {
   }, [state.discard.length]);
 
   const me = state.players[0];
+  const displayName = playerName.trim() || 'Sen';
+  const displayState = useMemo(
+    () => ({
+      ...state,
+      players: state.players.map((player, index) =>
+        index === 0
+          ? { ...player, name: displayName }
+          : player,
+      ) as typeof state.players,
+    }),
+    [state, displayName],
+  );
   const isMyTurn = state.currentSeat === 0;
 
   const canCancelDiscardTake =
@@ -304,16 +387,6 @@ function ExistingGameHome() {
     }
   };
 
-  const registerHandCardElement = (
-    cardId: string,
-    element: HTMLDivElement | null,
-  ) => {
-    if (element) {
-      cardElementsRef.current.set(cardId, element);
-    } else {
-      cardElementsRef.current.delete(cardId);
-    }
-  };
 
   const doDiscard = () => {
     if (selected.size !== 1) {
@@ -321,22 +394,11 @@ function ExistingGameHome() {
     }
 
     const cardId = [...selected][0];
-    const card = me.hand.find((item) => item.id === cardId);
-    const cardElement = cardElementsRef.current.get(cardId);
-    const discardTarget = discardTargetRef.current;
-
-    const from = cardElement?.getBoundingClientRect();
-    const to = discardTarget?.getBoundingClientRect();
 
     const successful = humanDiscard(cardId);
 
     if (successful) {
       playGameSound('discard', soundEnabled);
-
-      if (card && from && to) {
-        setDiscardFlight({ card, from, to });
-      }
-
       resetLocalActions();
     }
   };
@@ -451,13 +513,44 @@ function ExistingGameHome() {
 
   if (!started) {
     return (
-      <SetupModal
-        onStart={(newTarget) => {
-          setTarget(newTarget);
-          newGame(newTarget);
-          setStarted(true);
-        }}
-      />
+      <>
+        {showSetup ? (
+          <SetupModal
+            playerName={playerName}
+            onNameChange={setPlayerName}
+            onStart={(newTarget) => {
+              setTarget(newTarget);
+              setFinisherNoticeOpen(false);
+              setScoreReadyRound(null);
+              newGame(newTarget);
+              setStarted(true);
+              setShowSetup(false);
+            }}
+            onBack={() => setShowSetup(false)}
+            onShowRules={() => setShowRules(true)}
+          />
+        ) : (
+          <MainMenuModal
+            onNewGame={() => setShowSetup(true)}
+            onShowRules={() => setShowRules(true)}
+            onShowSettings={() => setShowSettings(true)}
+          />
+        )}
+
+        {showRules && (
+          <RulesModal
+            onClose={() => setShowRules(false)}
+          />
+        )}
+
+        {showSettings && (
+          <SettingsModal
+            soundEnabled={soundEnabled}
+            onSoundChange={setSoundEnabled}
+            onClose={() => setShowSettings(false)}
+          />
+        )}
+      </>
     );
   }
 
@@ -468,23 +561,123 @@ function ExistingGameHome() {
   return (
     <div className={fitMode ? "mobile-scale-stage is-fit-mode" : "mobile-scale-stage"}>
       <div className="anastra-page text-white flex flex-col">
-        <div className="game-topbar">
-        <h1 className="game-brand text-lg md:text-xl font-black">
-          ANASTRA
-        </h1>
+        <AnimatePresence>
+          {firstOpenNoticeSeat !== null && (
+            <motion.div
+              key={`first-open-${firstOpenNoticeSeat}`}
+              initial={{ opacity: 0, y: -40, scale: 0.75 }}
+              animate={{
+                opacity: 1,
+                y: 0,
+                scale: [0.75, 1.08, 1],
+              }}
+              exit={{ opacity: 0, y: -24, scale: 0.9 }}
+              transition={{
+                duration: 0.55,
+                ease: 'easeOut',
+              }}
+              style={{
+                position: 'fixed',
+                top: '72px',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                zIndex: 10000,
+                pointerEvents: 'none',
+              }}
+              className="rounded-2xl border border-amber-300/60 bg-slate-950/95 px-5 py-3 text-center shadow-2xl backdrop-blur-md"
+            >
+              <div className="text-[10px] font-bold uppercase tracking-[0.22em] text-amber-300/80">
+                Bu Elin İlk Açanı
+              </div>
 
-        <div className="flex flex-wrap justify-end gap-2 text-xs md:text-sm">
-          <span className="score-chip text-sky-300">
-            T1: {state.teamScores[0]}
-          </span>
+              <div className="mt-1 text-base font-black text-amber-200 md:text-lg">
+                ⭐ {displayState.players[firstOpenNoticeSeat]?.name}
+              </div>
 
-          <span className="score-chip text-rose-300">
-            T2: {state.teamScores[1]}
-          </span>
+              <div className="mt-0.5 text-[11px] font-semibold text-white/70">
+                51 barajını ilk geçen oyuncu
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-          <span className="score-chip text-white/60">
-            Baraj {state.openThreshold}
-          </span>
+        <AnimatePresence>
+          {finisherNoticeOpen &&
+            state.roundFinisherSeat !== null &&
+            (state.phase === 'roundOver' || state.phase === 'gameOver') && (
+              <motion.div
+                key={`round-finisher-${state.roundNumber}-${state.roundFinisherSeat}`}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-[10001] flex items-center justify-center bg-black/65 p-4 backdrop-blur-sm"
+              >
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.82, y: 24 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.94, y: 10 }}
+                  transition={{ duration: 0.3, ease: 'easeOut' }}
+                  className="w-full max-w-sm rounded-3xl border border-emerald-300/50 bg-slate-950/95 p-6 text-center shadow-2xl"
+                >
+                  <div className="text-[11px] font-bold uppercase tracking-[0.24em] text-emerald-300/80">
+                    Eli Bitiren Oyuncu
+                  </div>
+
+                  <div className="mt-3 text-3xl font-black text-emerald-200">
+                    🏁 {displayState.players[state.roundFinisherSeat]?.name}
+                  </div>
+
+                  <div className="mt-2 text-sm font-semibold text-white/70">
+                    Bu eli tamamladı
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFinisherNoticeOpen(false);
+                      setScoreReadyRound(state.roundNumber);
+                    }}
+                    className="game-button primary mt-5 w-full"
+                  >
+                    Skoru Gör
+                  </button>
+                </motion.div>
+              </motion.div>
+            )}
+        </AnimatePresence>
+
+      <div className="game-topbar game-topbar-pro">
+        <div className="game-topbar-identity">
+          <h1 className="game-brand game-brand-pro">ANASTRA</h1>
+          <div className="game-round-meta">
+            <span>El {state.roundNumber}</span>
+            <span className="game-round-dot">•</span>
+            <span>Hedef {target}</span>
+          </div>
+        </div>
+
+        <div className="game-topbar-center">
+          <div className="team-score-pill team-score-pill-ours">
+            <span className="team-score-label">BİZ</span>
+            <strong>{state.teamScores[0]}</strong>
+          </div>
+          <div className="team-score-divider">:</div>
+          <div className="team-score-pill team-score-pill-theirs">
+            <strong>{state.teamScores[1]}</strong>
+            <span className="team-score-label">ONLAR</span>
+          </div>
+        </div>
+
+        <div className="game-topbar-actions">
+          <span className="topbar-info-chip">51 Baraj</span>
+
+          {state.firstOpenedSeat !== null && (
+            <span className="topbar-info-chip topbar-first-opener">
+              <span aria-hidden="true">★</span>
+              <span className="topbar-first-opener-label">İlk Açan</span>
+              <strong>{displayState.players[state.firstOpenedSeat]?.name}</strong>
+            </span>
+          )}
 
           <button
             type="button"
@@ -516,7 +709,7 @@ function ExistingGameHome() {
             yourTurnPulse ? 'is-your-turn-pulse' : '',
           ].join(' ')}
         >
-          <div className="table-seat table-seat-top">
+<div className="table-seat table-seat-top">
             <OpponentSeat
               player={state.players[2]}
               isCurrent={state.currentSeat === 2}
@@ -603,7 +796,6 @@ function ExistingGameHome() {
 
 
             <div
-              ref={discardTargetRef}
               className="table-discard-area"
             >
               {state.discard.length > 0 ? (
@@ -768,13 +960,14 @@ function ExistingGameHome() {
 
           <div className="table-score-panel">
             <ScorePanel
-              state={state}
+              state={displayState}
               onShowRules={() =>
                 setShowRules(true)
               }
-              onNewGame={() =>
-                setStarted(false)
-              }
+              onNewGame={() => {
+                setStarted(false);
+                setShowSetup(false);
+              }}
             />
           </div>
         </div>
@@ -826,53 +1019,7 @@ function ExistingGameHome() {
         );
       })()}
 
-      <AnimatePresence>
-        {discardFlight && (
-          <motion.div
-            key={`discard-flight-${discardFlight.card.id}`}
-            initial={{
-              left: discardFlight.from.left,
-              top: discardFlight.from.top,
-              width: discardFlight.from.width,
-              height: discardFlight.from.height,
-              rotate: 0,
-              scale: 1,
-              opacity: 1,
-            }}
-            animate={{
-              left:
-                discardFlight.to.left +
-                discardFlight.to.width / 2 -
-                discardFlight.from.width / 2,
-              top:
-                discardFlight.to.top +
-                discardFlight.to.height / 2 -
-                discardFlight.from.height / 2,
-              rotate: 5,
-              scale: 0.9,
-              opacity: 1,
-            }}
-            exit={{ opacity: 0, scale: 0.82 }}
-            transition={{
-              duration: 0.32,
-              ease: [0.22, 1, 0.36, 1],
-            }}
-            onAnimationComplete={() => setDiscardFlight(null)}
-            style={{
-              position: 'fixed',
-              zIndex: 9999,
-              pointerEvents: 'none',
-            }}
-          >
-            <CardView
-              card={discardFlight.card}
-              size="lg"
-              disabled
-              animated={false}
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
+
 
       <div className="action-dock p-2 md:p-3 space-y-2">
         {message && (
@@ -954,7 +1101,6 @@ function ExistingGameHome() {
           disabled={!isMyTurn}
           onToggle={toggleCard}
           onReorder={reorderHand}
-          onCardElement={registerHandCardElement}
         />
 
         {isMyTurn &&
@@ -1087,13 +1233,23 @@ function ExistingGameHome() {
         />
       )}
 
-      {roundEnded && (
+      {roundEnded &&
+        scoreReadyRound === state.roundNumber &&
+        !finisherNoticeOpen && (
         <RoundOverModal
-          state={state}
-          onNext={nextRound}
-          onNewGame={() =>
-            setStarted(false)
-          }
+          state={displayState}
+          playerName={displayName}
+          onNext={() => {
+            setFinisherNoticeOpen(false);
+            setScoreReadyRound(null);
+            nextRound();
+          }}
+          onNewGame={() => {
+            setFinisherNoticeOpen(false);
+            setScoreReadyRound(null);
+            setStarted(false);
+            setShowSetup(false);
+          }}
         />
       )}
       </div>
